@@ -1,26 +1,85 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --color-cream: #FAF6EF;
+  --color-cream-soft: #F3EDE3;
+  --color-blush: #F1D9DC;
+  --color-blush-deep: #E4B9C0;
+  --color-sage: #9BAA8C;
+  --color-sage-deep: #7C8D6E;
+  --color-taupe: #CBB8A2;
+  --color-espresso: #3E2C22;
+  --color-espresso-soft: #6B5648;
+  --color-espresso-deep: #2C1F17;
+  --color-gold: #C7A26B;
+  --color-white: #FFFFFF;
+  --color-cream-logo: rgb(250, 245, 236);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-taupe) var(--color-cream);
+}
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-cream);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-taupe);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-espresso-soft);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@theme {
+  --color-cream: var(--color-cream);
+  --color-cream-soft: var(--color-cream-soft);
+  --color-blush: var(--color-blush);
+  --color-blush-deep: var(--color-blush-deep);
+  --color-sage: var(--color-sage);
+  --color-sage-deep: var(--color-sage-deep);
+  --color-taupe: var(--color-taupe);
+  --color-espresso: var(--color-espresso);
+  --color-espresso-soft: var(--color-espresso-soft);
+  --color-espresso-deep: var(--color-espresso-deep);
+  --color-gold: var(--color-gold);
+  --color-white: var(--color-white);
+
+  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-fraunces), ui-serif, Georgia, serif;
+
+  --breakpoint-sm: 480px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+
+  --animate-marquee: marquee var(--duration) linear infinite;
+  --animate-marquee-vertical: marquee-vertical var(--duration) linear infinite;
+
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(calc(-100% - var(--gap))); }
+  }
+
+  @keyframes marquee-vertical {
+    from { transform: translateY(0); }
+    to { transform: translateY(calc(-100% - var(--gap))); }
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer base {
+  body {
+    background-color: var(--color-cream);
+    color: var(--color-espresso);
+    font-family: var(--font-sans);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-serif);
+  }
 }
