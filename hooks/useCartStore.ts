@@ -8,7 +8,9 @@ interface CartState {
   removeItem: (productId: string, variantId?: string) => void;
   updateQuantity: (productId: string, quantity: number, variantId?: string) => void;
   clearCart: () => void;
-  getCartTotal: (products: { id: string; price: number }[]) => number;
+  // Price is now read from the denormalized item.price field.
+  // The products[] parameter is kept for backwards compatibility but ignored.
+  getCartTotal: (products?: { id: string; price: number }[]) => number;
 }
 
 export const useCartStore = create<CartState>()(
@@ -18,11 +20,16 @@ export const useCartStore = create<CartState>()(
       addItem: (newItem) =>
         set((state) => {
           const existingItemIndex = state.items.findIndex(
-            (item) => item.productId === newItem.productId && item.variantId === newItem.variantId
+            (item) =>
+              item.productId === newItem.productId &&
+              item.variantId === newItem.variantId
           );
           if (existingItemIndex > -1) {
             const updatedItems = [...state.items];
-            updatedItems[existingItemIndex].quantity += newItem.quantity;
+            updatedItems[existingItemIndex] = {
+              ...updatedItems[existingItemIndex],
+              quantity: updatedItems[existingItemIndex].quantity + newItem.quantity,
+            };
             return { items: updatedItems };
           }
           return { items: [...state.items, newItem] };
@@ -30,7 +37,8 @@ export const useCartStore = create<CartState>()(
       removeItem: (productId, variantId) =>
         set((state) => ({
           items: state.items.filter(
-            (item) => !(item.productId === productId && item.variantId === variantId)
+            (item) =>
+              !(item.productId === productId && item.variantId === variantId)
           ),
         })),
       updateQuantity: (productId, quantity, variantId) =>
@@ -42,12 +50,13 @@ export const useCartStore = create<CartState>()(
           ),
         })),
       clearCart: () => set({ items: [] }),
-      getCartTotal: (products) => {
+      // Uses denormalized item.price for the total — no external products array needed.
+      getCartTotal: (_products?: { id: string; price: number }[]) => {
         const state = get();
-        return state.items.reduce((total, item) => {
-          const product = products.find((p) => p.id === item.productId);
-          return total + (product?.price || 0) * item.quantity;
-        }, 0);
+        return state.items.reduce(
+          (total, item) => total + item.price * item.quantity,
+          0
+        );
       },
     }),
     {

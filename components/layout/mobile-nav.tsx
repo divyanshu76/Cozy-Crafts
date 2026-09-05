@@ -1,7 +1,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { Drawer } from "@/components/ui/drawer"
-import { ChevronRight, Search, Heart, User } from "lucide-react"
+import { ChevronRight, Search, Heart, Package } from "lucide-react"
 import { RandomLetterSwap } from "@/components/ui/random-letter-swap"
 import { usePathname } from "next/navigation"
 
@@ -67,11 +67,11 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
           </ul>
         </nav>
 
-        {/* Footer actions */}
+        {/* Footer actions — Account removed, Track Order added */}
         <div className="p-4 border-t border-taupe/20 bg-cream-soft/50 space-y-4">
-          <Link href="/account" onClick={onClose} className="flex items-center gap-3 text-espresso font-medium px-2 py-2 hover:text-sage">
-            <User size={20} />
-            My Account
+          <Link href="/track-order" onClick={onClose} className="flex items-center gap-3 text-espresso font-medium px-2 py-2 hover:text-sage">
+            <Package size={20} />
+            Track Order
           </Link>
           <Link href="/wishlist" onClick={onClose} className="flex items-center gap-3 text-espresso font-medium px-2 py-2 hover:text-sage">
             <Heart size={20} />

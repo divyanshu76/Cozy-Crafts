@@ -22,17 +22,24 @@ export function ProductCard({ product }: ProductCardProps) {
   const { isInWishlist, toggleItem } = useWishlistStore();
   const { toast } = useToast();
   const router = useRouter();
-  
+
   const hasDiscount = product.compareAtPrice && product.compareAtPrice > product.price;
-  const discountPercent = hasDiscount 
-    ? Math.round(((product.compareAtPrice! - product.price) / product.compareAtPrice!) * 100) 
+  const discountPercent = hasDiscount
+    ? Math.round(((product.compareAtPrice! - product.price) / product.compareAtPrice!) * 100)
     : 0;
 
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.preventDefault();
     if (product.stock === 0) return;
-    
-    addItem({ productId: product.id, quantity: 1 });
+
+    addItem({
+      productId: product.id,
+      quantity: 1,
+      name: product.name,
+      price: product.price,
+      image: product.images?.[0],
+      slug: product.slug,
+    });
     toast(`Added ${product.name} to cart`, "success");
   };
 
@@ -42,7 +49,7 @@ export function ProductCard({ product }: ProductCardProps) {
   };
 
   return (
-    <Link 
+    <Link
       href={`/product/${product.slug}`}
       className="group relative flex flex-col gap-3 transition-all duration-300 hover:shadow-md rounded-xl p-2 sm:p-3 -mx-2 sm:-mx-3"
       onMouseEnter={() => setIsHovered(true)}
@@ -72,7 +79,7 @@ export function ProductCard({ product }: ProductCardProps) {
             sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
           />
         )}
-        
+
         {/* Badges */}
         <div className="absolute top-2 left-2 flex flex-col gap-1.5">
           {product.stock === 0 && <Badge variant="outline" className="bg-white/90">Out of stock</Badge>}
@@ -82,7 +89,7 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
 
         {/* Wishlist Button */}
-        <button 
+        <button
           onClick={handleWishlist}
           className="absolute top-2 right-2 p-1.5 rounded-full bg-white/50 backdrop-blur-sm text-espresso hover:bg-white transition-colors"
           aria-label="Toggle Wishlist"
@@ -96,7 +103,7 @@ export function ProductCard({ product }: ProductCardProps) {
             onClick={(e) => {
               e.preventDefault();
               if (product.stock === 0) return;
-              addItem({ productId: product.id, quantity: 1 });
+              addItem({ productId: product.id, quantity: 1, name: product.name, price: product.price, image: product.images?.[0], slug: product.slug });
               toast(`Added ${product.name} to cart`, "success");
             }}
             disabled={product.stock === 0}
@@ -108,7 +115,7 @@ export function ProductCard({ product }: ProductCardProps) {
             onClick={(e) => {
               e.preventDefault();
               if (product.stock === 0) return;
-              addItem({ productId: product.id, quantity: 1 });
+              addItem({ productId: product.id, quantity: 1, name: product.name, price: product.price, image: product.images?.[0], slug: product.slug });
               router.push("/checkout");
             }}
             disabled={product.stock === 0}

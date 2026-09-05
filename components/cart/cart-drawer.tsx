@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import Image from "next/image"
 import { Minus, Plus, Trash2 } from "lucide-react"
-import { products } from "@/data/products" // In a real app, this would be fetched or stored in state differently
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -14,17 +13,14 @@ interface CartDrawerProps {
 }
 
 export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
-  const { items, updateQuantity, removeItem, getCartTotal } = useCartStore();
-  
-  // Need the full product data for cart display
-  const cartItemsWithData = items.map(item => {
-    const product = products.find(p => p.id === item.productId);
-    return { ...item, product };
-  }).filter(item => item.product !== undefined);
+  const { items, updateQuantity, removeItem } = useCartStore();
 
-  const subtotal = getCartTotal(products);
+  const subtotal = items.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0
+  );
   const isFreeShipping = subtotal >= 499;
-  const shippingAmount = isFreeShipping ? 0 : 50;
+  const shippingAmount = isFreeShipping ? 0 : 49;
   const progressPercent = Math.min((subtotal / 499) * 100, 100);
 
   return (
@@ -42,63 +38,76 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
             {/* Free Shipping Progress */}
             <div className="p-4 bg-sage/10 border-b border-sage/20">
               <p className="text-sm text-espresso text-center mb-2 font-medium">
-                {isFreeShipping 
-                  ? "You've unlocked free shipping! 🎉" 
-                  : `Add ₹${(499 - subtotal).toFixed(2)} more for free shipping`}
+                {isFreeShipping
+                  ? "You've unlocked free shipping! 🎉"
+                  : `Add ₹${(499 - subtotal).toFixed(0)} more for free shipping`}
               </p>
               <div className="w-full bg-white h-2 rounded-full overflow-hidden">
-                <div 
-                  className="bg-sage h-full transition-all duration-500 ease-out" 
-                  style={{ width: `${progressPercent}%` }} 
+                <div
+                  className="bg-sage h-full transition-all duration-500 ease-out"
+                  style={{ width: `${progressPercent}%` }}
                 />
               </div>
             </div>
 
             {/* Cart Items */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-cream">
-              {cartItemsWithData.map((item) => (
-                <div key={`${item.productId}-${item.variantId}`} className="flex gap-4 bg-white p-3 rounded-lg shadow-sm">
-                  <Link href={`/product/${item.product?.slug}`} onClick={onClose} className="shrink-0 relative w-20 h-24 rounded-md overflow-hidden bg-cream-soft">
-                    <Image src={item.product?.images[0] || ""} alt={item.product?.name || ""} fill className="object-cover" />
+              {items.map((item) => (
+                <div key={`${item.productId}-${item.variantId ?? ""}`} className="flex gap-4 bg-white p-3 rounded-lg shadow-sm">
+                  <Link
+                    href={`/product/${item.slug ?? item.productId}`}
+                    onClick={onClose}
+                    className="shrink-0 relative w-20 h-24 rounded-md overflow-hidden bg-cream-soft"
+                  >
+                    {item.image ? (
+                      <Image src={item.image} alt={item.name} fill className="object-cover" />
+                    ) : (
+                      <div className="w-full h-full bg-cream-soft" />
+                    )}
                   </Link>
                   <div className="flex flex-1 flex-col justify-between py-1">
                     <div className="flex justify-between items-start">
                       <div>
-                        <Link href={`/product/${item.product?.slug}`} onClick={onClose} className="font-medium text-espresso hover:text-sage text-sm line-clamp-1">
-                          {item.product?.name}
+                        <Link
+                          href={`/product/${item.slug ?? item.productId}`}
+                          onClick={onClose}
+                          className="font-medium text-espresso hover:text-sage text-sm line-clamp-1"
+                        >
+                          {item.name}
                         </Link>
-                        {item.variantId && (
-                          <p className="text-xs text-taupe mt-0.5">
-                            {item.product?.variants?.find(v => v.id === item.variantId)?.label}
-                          </p>
+                        {item.variantLabel && (
+                          <p className="text-xs text-taupe mt-0.5">{item.variantLabel}</p>
                         )}
                       </div>
-                      <button 
+                      <button
                         onClick={() => removeItem(item.productId, item.variantId)}
                         className="text-taupe hover:text-blush transition-colors p-1 -mt-1 -mr-1"
+                        aria-label={`Remove ${item.name}`}
                       >
                         <Trash2 size={16} />
                       </button>
                     </div>
-                    
+
                     <div className="flex justify-between items-end mt-2">
                       <div className="flex items-center border border-taupe/30 rounded-md h-8 bg-cream-soft">
-                        <button 
+                        <button
                           onClick={() => updateQuantity(item.productId, Math.max(1, item.quantity - 1), item.variantId)}
                           className="w-8 h-full flex items-center justify-center text-espresso hover:bg-cream transition-colors"
+                          aria-label="Decrease quantity"
                         >
                           <Minus size={12} />
                         </button>
                         <span className="w-8 text-center text-xs font-medium">{item.quantity}</span>
-                        <button 
+                        <button
                           onClick={() => updateQuantity(item.productId, item.quantity + 1, item.variantId)}
                           className="w-8 h-full flex items-center justify-center text-espresso hover:bg-cream transition-colors"
+                          aria-label="Increase quantity"
                         >
                           <Plus size={12} />
                         </button>
                       </div>
                       <span className="font-medium text-espresso text-sm">
-                        ₹{item.product?.price && item.product.price * item.quantity}
+                        ₹{(item.price * item.quantity).toLocaleString("en-IN")}
                       </span>
                     </div>
                   </div>
@@ -111,18 +120,20 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
               <div className="space-y-2 mb-4">
                 <div className="flex justify-between text-sm text-espresso-soft">
                   <span>Subtotal</span>
-                  <span>₹{subtotal.toFixed(2)}</span>
+                  <span>₹{subtotal.toLocaleString("en-IN")}</span>
                 </div>
                 <div className="flex justify-between text-sm text-espresso-soft">
                   <span>Shipping</span>
-                  <span>{isFreeShipping ? "Free" : `₹${shippingAmount.toFixed(2)}`}</span>
+                  <span>{isFreeShipping ? "Free" : `₹${shippingAmount}`}</span>
                 </div>
                 <div className="flex justify-between text-base font-semibold text-espresso pt-2 border-t border-taupe/10 mt-2">
                   <span>Total</span>
-                  <span>₹{(subtotal + shippingAmount).toFixed(2)}</span>
+                  <span>₹{(subtotal + shippingAmount).toLocaleString("en-IN")}</span>
                 </div>
               </div>
-              <p className="text-xs text-taupe text-center mb-4">Taxes included. Discounts calculated at checkout.</p>
+              <p className="text-xs text-taupe text-center mb-4">
+                Taxes included. Discounts calculated at checkout.
+              </p>
               <Button asChild className="w-full h-12 text-base" onClick={onClose}>
                 <Link href="/checkout">Proceed to Checkout</Link>
               </Button>

@@ -1,11 +1,13 @@
 "use client"
 import * as React from "react"
 import Link from "next/link"
-import { CheckCircle } from "lucide-react"
+import { useSearchParams } from "next/navigation"
+import { CheckCircle, Package } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export default function ConfirmationPage() {
-  const orderNumber = React.useMemo(() => `CC-${Math.floor(Math.random() * 100000).toString().padStart(5, '0')}`, []);
+  const searchParams = useSearchParams();
+  const orderNumber = searchParams.get("orderNumber");
 
   return (
     <div className="container mx-auto px-4 py-20 md:py-32 flex flex-col items-center text-center max-w-2xl">
@@ -13,17 +15,31 @@ export default function ConfirmationPage() {
         <CheckCircle className="w-16 h-16 text-sage" />
       </div>
       
-      <h1 className="font-serif text-4xl text-espresso mb-4">Thank you for your order!</h1>
+      <h1 className="font-serif text-4xl text-espresso mb-4">
+        Thank you for your order!
+      </h1>
       <p className="text-xl text-espresso-soft mb-8">
-        Your order <span className="font-semibold text-espresso">{orderNumber}</span> has been confirmed.
+        {orderNumber ? (
+          <>
+            Your order{" "}
+            <span className="font-semibold text-espresso">{orderNumber}</span>{" "}
+            has been confirmed.
+          </>
+        ) : (
+          "Your order has been confirmed."
+        )}
       </p>
       
       <div className="bg-cream-soft p-6 md:p-8 rounded-xl border border-taupe/20 w-full mb-10">
         <p className="text-espresso mb-4">
-          We'll start handcrafting your items right away. You'll receive an email confirmation with tracking details once your order ships.
+          We&apos;ll start handcrafting your items right away. You&apos;ll receive an
+          email confirmation once your order ships.
         </p>
         <p className="text-sm text-taupe">
-          Have questions? Contact us at <a href="mailto:hello@cozycraft.in" className="text-sage hover:underline">hello@cozycraft.in</a>
+          Have questions? Contact us at{" "}
+          <a href="mailto:hello@cozycraft.in" className="text-sage hover:underline">
+            hello@cozycraft.in
+          </a>
         </p>
       </div>
 
@@ -31,9 +47,14 @@ export default function ConfirmationPage() {
         <Button asChild size="lg">
           <Link href="/shop">Continue Shopping</Link>
         </Button>
-        <Button asChild variant="outline" size="lg">
-          <Link href="/account">View Order Status</Link>
-        </Button>
+        {orderNumber && (
+          <Button asChild variant="outline" size="lg">
+            <Link href={`/track-order?orderNumber=${encodeURIComponent(orderNumber)}`}>
+              <Package className="h-4 w-4 mr-2" />
+              Track My Order
+            </Link>
+          </Button>
+        )}
       </div>
     </div>
   )

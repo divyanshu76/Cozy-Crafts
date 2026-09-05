@@ -2,7 +2,7 @@
 import * as React from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { Search, ShoppingBag, Menu, Heart, User } from "lucide-react"
+import { ShoppingBag, Menu, Heart } from "lucide-react"
 import { useCartStore } from "@/hooks/useCartStore"
 import { cn } from "@/lib/utils"
 import { CartDrawer } from "@/components/cart/cart-drawer"
@@ -74,10 +74,18 @@ export function Header() {
             <div className="hidden sm:block">
               <ExpandingSearchDock />
             </div>
-            <Link href="/account" className="p-2 text-espresso hover:bg-cream-soft rounded-full transition-colors hidden md:block" aria-label="Account">
-              <User size={20} />
+            {/* Track Order — desktop only text link */}
+            <Link
+              href="/track-order"
+              className="hidden text-xs font-medium text-espresso-soft hover:text-espresso lg:inline transition-colors"
+            >
+              Track Order
             </Link>
-            <Link href="/wishlist" className="p-2 text-espresso hover:bg-cream-soft rounded-full transition-colors hidden md:block" aria-label="Wishlist">
+            <Link
+              href="/wishlist"
+              className="p-2 text-espresso hover:bg-cream-soft rounded-full transition-colors hidden md:block"
+              aria-label="Wishlist"
+            >
               <Heart size={20} />
             </Link>
             <button

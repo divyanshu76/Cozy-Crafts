@@ -26,16 +26,24 @@ export function AddToCart({ product }: AddToCartProps) {
   const handleAdd = () => {
     if (product.stock === 0) return;
     
+    const variant = product.variants?.find(v => v.id === selectedVariant);
+
     addItem({ 
       productId: product.id, 
       quantity,
-      variantId: selectedVariant
+      variantId: selectedVariant,
+      variantLabel: variant?.label,
+      // Denormalized snapshot for cart drawer & checkout UI display
+      name: product.name,
+      price: variant?.priceOverride ?? product.price,
+      image: product.images?.[0],
+      slug: product.slug,
     });
     
-    const variantName = product.variants?.find(v => v.id === selectedVariant)?.label;
-    const itemName = variantName ? `${product.name} (${variantName})` : product.name;
+    const itemName = variant ? `${product.name} (${variant.label})` : product.name;
     toast(`Added ${quantity} ${itemName} to cart`, "success");
   };
+
 
   const handleWishlist = () => {
     toggleItem(product.id);
