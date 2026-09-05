@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation"
 import { CheckCircle, Package } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
-export default function ConfirmationPage() {
+function ConfirmationContent() {
   const searchParams = useSearchParams();
   const orderNumber = searchParams.get("orderNumber");
 
@@ -57,5 +57,13 @@ export default function ConfirmationPage() {
         )}
       </div>
     </div>
-  )
+  );
+}
+
+export default function ConfirmationPage() {
+  return (
+    <React.Suspense fallback={<div className="container mx-auto px-4 py-20 text-center text-espresso-soft">Loading order confirmation...</div>}>
+      <ConfirmationContent />
+    </React.Suspense>
+  );
 }

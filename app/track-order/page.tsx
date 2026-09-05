@@ -65,8 +65,8 @@ interface OrderResult {
   }[];
 }
 
-// ── Page ─────────────────────────────────────────────────────────────────────
-export default function TrackOrderPage() {
+// ── Content ──────────────────────────────────────────────────────────────────
+function TrackOrderContent() {
   const searchParams = useSearchParams();
   const prefillOrderNumber = searchParams.get("order") ?? "";
 
@@ -330,5 +330,13 @@ export default function TrackOrderPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function TrackOrderPage() {
+  return (
+    <React.Suspense fallback={<div className="min-h-screen bg-cream flex items-center justify-center text-espresso-soft">Loading order tracking...</div>}>
+      <TrackOrderContent />
+    </React.Suspense>
   );
 }

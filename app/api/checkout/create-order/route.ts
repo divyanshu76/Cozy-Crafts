@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
-import { razorpay } from "@/lib/razorpay/client";
+import { getRazorpayClient } from "@/lib/razorpay/client";
 
 const checkoutSchema = z.object({
   items: z
@@ -200,6 +200,7 @@ export async function POST(req: NextRequest) {
   // TODO (launch hardening): wrap steps 5-9 in a Postgres function called via supabase.rpc().
   let razorpayOrder: { id: string; amount: number; currency: string };
   try {
+    const razorpay = getRazorpayClient();
     razorpayOrder = await razorpay.orders.create({
       amount: Math.round(total * 100), // paise
       currency: "INR",
