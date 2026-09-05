@@ -2,10 +2,9 @@ import type { Metadata } from "next";
 import { Fraunces, Manrope } from "next/font/google";
 import "./globals.css";
 
-import { AnnouncementBar } from "@/components/layout/announcement-bar";
-import { Header } from "@/components/layout/header";
-import { Footer } from "@/components/layout/footer";
 import { ToastProvider } from "@/components/ui/toast";
+import { eagleLake } from "@/lib/fonts";
+import { StorefrontChrome } from "@/components/layout/storefront-chrome";
 
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -21,8 +20,25 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://www.cozycrafts.shop"),
   title: "Cozy Craft | Little Things, Made With Love",
   description: "Handcrafted gifts, tiny treasures and thoughtful details — made to bring a little more joy to everyday moments.",
+};
+
+const organizationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "Cozy Craft",
+  url: "https://www.cozycrafts.shop",
+  logo: "https://www.cozycrafts.shop/assets/logo.png",
+  description: "Handcrafted gifts, tiny treasures and thoughtful details — made to bring a little more joy to everyday moments.",
+  address: {
+    "@type": "PostalAddress",
+    addressLocality: "Mirzapur",
+    addressRegion: "Uttar Pradesh",
+    postalCode: "231001",
+    addressCountry: "IN",
+  },
 };
 
 export default function RootLayout({
@@ -32,14 +48,17 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${fraunces.variable} ${manrope.variable} antialiased min-h-screen flex flex-col`}>
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        />
+      </head>
+      <body className={`${fraunces.variable} ${manrope.variable} ${eagleLake.variable} antialiased min-h-screen flex flex-col`}>
         <ToastProvider>
-          <AnnouncementBar />
-          <Header />
-          <main className="flex-1">
+          <StorefrontChrome>
             {children}
-          </main>
-          <Footer />
+          </StorefrontChrome>
         </ToastProvider>
       </body>
     </html>

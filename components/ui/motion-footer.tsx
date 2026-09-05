@@ -45,36 +45,30 @@ if (typeof window !== "undefined") {
 }
 
 // -------------------------------------------------------------------------
-// 1. THEME-ADAPTIVE INLINE STYLES
+// 1. THEME-ADAPTIVE INLINE STYLES (Cozy Craft Palette & Cinematic Motion)
 // -------------------------------------------------------------------------
 const STYLES = `
 .cinematic-footer-wrapper {
-  /* Dynamic Variables using Cozy Craft tokens */
-  --background: var(--color-espresso);
-  --foreground: var(--color-cream);
-  --primary: var(--color-sage);
-  --secondary: var(--color-gold);
-  --border: var(--color-espresso-soft);
-  --muted-foreground: var(--color-taupe);
-  --destructive: var(--color-blush-deep);
-
-  --pill-bg-1: color-mix(in oklch, var(--foreground) 3%, transparent);
-  --pill-bg-2: color-mix(in oklch, var(--foreground) 1%, transparent);
-  --pill-shadow: color-mix(in oklch, var(--background) 50%, transparent);
-  --pill-highlight: color-mix(in oklch, var(--foreground) 10%, transparent);
-  --pill-inset-shadow: color-mix(in oklch, var(--background) 80%, transparent);
-  --pill-border: color-mix(in oklch, var(--foreground) 8%, transparent);
+  font-family: var(--font-manrope), sans-serif;
+  -webkit-font-smoothing: antialiased;
   
-  --pill-bg-1-hover: color-mix(in oklch, var(--foreground) 8%, transparent);
-  --pill-bg-2-hover: color-mix(in oklch, var(--foreground) 2%, transparent);
-  --pill-border-hover: color-mix(in oklch, var(--foreground) 20%, transparent);
-  --pill-shadow-hover: color-mix(in oklch, var(--background) 70%, transparent);
-  --pill-highlight-hover: color-mix(in oklch, var(--foreground) 20%, transparent);
+  --pill-bg-1: color-mix(in srgb, var(--color-cream) 85%, white);
+  --pill-bg-2: color-mix(in srgb, var(--color-cream-soft) 85%, white);
+  --pill-shadow: rgba(62, 44, 34, 0.07);
+  --pill-highlight: rgba(255, 255, 255, 0.9);
+  --pill-inset-shadow: rgba(62, 44, 34, 0.03);
+  --pill-border: color-mix(in srgb, var(--color-taupe) 40%, transparent);
+  
+  --pill-bg-1-hover: #ffffff;
+  --pill-bg-2-hover: var(--color-cream-soft);
+  --pill-border-hover: var(--color-sage);
+  --pill-shadow-hover: rgba(62, 44, 34, 0.14);
+  --pill-highlight-hover: #ffffff;
 }
 
 @keyframes footer-breathe {
-  0% { transform: translate(-50%, -50%) scale(1); opacity: 0.6; }
-  100% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+  0% { transform: translate(-50%, -50%) scale(1); opacity: 0.55; }
+  100% { transform: translate(-50%, -50%) scale(1.1); opacity: 0.95; }
 }
 
 @keyframes footer-scroll-marquee {
@@ -83,8 +77,8 @@ const STYLES = `
 }
 
 @keyframes footer-heartbeat {
-  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 5px color-mix(in oklch, var(--destructive) 50%, transparent)); }
-  15%, 45% { transform: scale(1.2); filter: drop-shadow(0 0 10px color-mix(in oklch, var(--destructive) 80%, transparent)); }
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 4px rgba(225, 29, 72, 0.4)); }
+  15%, 45% { transform: scale(1.2); filter: drop-shadow(0 0 8px rgba(225, 29, 72, 0.7)); }
   30% { transform: scale(1); }
 }
 
@@ -104,18 +98,18 @@ const STYLES = `
 .footer-bg-grid {
   background-size: 60px 60px;
   background-image: 
-    linear-gradient(to right, color-mix(in oklch, var(--foreground) 3%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in oklch, var(--foreground) 3%, transparent) 1px, transparent 1px);
-  mask-image: linear-gradient(to bottom, transparent, black 30%, black 70%, transparent);
-  -webkit-mask-image: linear-gradient(to bottom, transparent, black 30%, black 70%, transparent);
+    linear-gradient(to right, color-mix(in srgb, var(--color-espresso) 4%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--color-espresso) 4%, transparent) 1px, transparent 1px);
+  mask-image: linear-gradient(to bottom, transparent, black 25%, black 75%, transparent);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, black 25%, black 75%, transparent);
 }
 
 /* Theme-adaptive Aurora Glow */
 .footer-aurora {
   background: radial-gradient(
     circle at 50% 50%, 
-    color-mix(in oklch, var(--primary) 15%, transparent) 0%, 
-    color-mix(in oklch, var(--secondary) 15%, transparent) 40%, 
+    color-mix(in srgb, var(--color-sage) 25%, transparent) 0%, 
+    color-mix(in srgb, var(--color-gold) 15%, transparent) 40%, 
     transparent 70%
   );
 }
@@ -137,38 +131,38 @@ const STYLES = `
   background: linear-gradient(145deg, var(--pill-bg-1-hover) 0%, var(--pill-bg-2-hover) 100%);
   border-color: var(--pill-border-hover);
   box-shadow: 
-      0 20px 40px -10px var(--pill-shadow-hover), 
+      0 18px 36px -10px var(--pill-shadow-hover), 
       inset 0 1px 1px var(--pill-highlight-hover);
-  color: var(--foreground);
+  color: var(--color-espresso);
 }
 
 /* Giant Background Text Masking */
 .footer-giant-bg-text {
-  font-size: 26vw;
+  font-size: 18vw;
   line-height: 0.75;
   font-weight: 900;
-  letter-spacing: -0.05em;
+  letter-spacing: -0.04em;
   color: transparent;
-  -webkit-text-stroke: 1px color-mix(in oklch, var(--foreground) 5%, transparent);
-  background: linear-gradient(180deg, color-mix(in oklch, var(--foreground) 10%, transparent) 0%, transparent 60%);
+  -webkit-text-stroke: 1px color-mix(in srgb, var(--color-espresso) 8%, transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-espresso) 12%, transparent) 0%, transparent 65%);
   -webkit-background-clip: text;
   background-clip: text;
 }
 
 /* Metallic Text Glow */
 .footer-text-glow {
-  background: linear-gradient(180deg, var(--foreground) 0%, color-mix(in oklch, var(--foreground) 40%, transparent) 100%);
+  background: linear-gradient(180deg, var(--color-espresso) 0%, color-mix(in srgb, var(--color-espresso) 75%, transparent) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  filter: drop-shadow(0px 0px 20px color-mix(in oklch, var(--foreground) 15%, transparent));
+  filter: drop-shadow(0px 0px 18px color-mix(in srgb, var(--color-espresso) 10%, transparent));
 }
 `;
 
 // -------------------------------------------------------------------------
-// 2. MAGNETIC BUTTON PRIMITIVE (Zero Dependency)
+// 2. MAGNETIC BUTTON PRIMITIVE (Zero Dependency with GSAP spring)
 // -------------------------------------------------------------------------
-export type MagneticButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & 
+export type MagneticButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> &
   React.AnchorHTMLAttributes<HTMLAnchorElement> & {
     as?: React.ElementType;
     href?: string;
@@ -192,11 +186,11 @@ const MagneticButton = React.forwardRef<HTMLElement, MagneticButtonProps>(
           const y = e.clientY - rect.top - w;
 
           gsap.to(element, {
-            x: x * 0.4,
-            y: y * 0.4,
-            rotationX: -y * 0.15,
-            rotationY: x * 0.15,
-            scale: 1.05,
+            x: x * 0.35,
+            y: y * 0.35,
+            rotationX: -y * 0.12,
+            rotationY: x * 0.12,
+            scale: 1.04,
             ease: "power2.out",
             duration: 0.4,
           });
@@ -224,9 +218,9 @@ const MagneticButton = React.forwardRef<HTMLElement, MagneticButtonProps>(
       }, element);
 
       return () => ctx.revert();
-    },[]);
+    }, []);
 
-    // Determine the underlying element correctly, particularly for Next.js <Link> wrapper
+    // Route internal links through Next.js <Link>
     if (Component === "a" && props.href && props.href.startsWith("/")) {
       return (
         <Link
@@ -262,69 +256,74 @@ const MagneticButton = React.forwardRef<HTMLElement, MagneticButtonProps>(
 MagneticButton.displayName = "MagneticButton";
 
 // -------------------------------------------------------------------------
-// 3. MAIN COMPONENT
+// 3. MARQUEE ITEM
 // -------------------------------------------------------------------------
 const MarqueeItem = () => (
-  <div className="flex items-center space-x-12 px-6">
-    <span>Little Things</span> <span className="text-primary/60">✦</span>
-    <span>Made With Love</span> <span className="text-secondary/60">✦</span>
-    <span>Handcrafted</span> <span className="text-primary/60">✦</span>
-    <span>Unique Treasures</span> <span className="text-secondary/60">✦</span>
-    <span>Everyday Joy</span> <span className="text-primary/60">✦</span>
+  <div className="flex items-center space-x-10 sm:space-x-14 px-6">
+    <span>Handmade With Love</span> <span className="text-[var(--color-sage-deep)]">✦</span>
+    <span>Small Batch Crafts</span> <span className="text-[var(--color-gold)]">✦</span>
+    <span>Flower Bouquets</span> <span className="text-[var(--color-sage-deep)]">✦</span>
+    <span>Cute Keychains</span> <span className="text-[var(--color-gold)]">✦</span>
+    <span>Handcrafted in India</span> <span className="text-[var(--color-sage-deep)]">✦</span>
+    <span>Everyday Joy</span> <span className="text-[var(--color-gold)]">✦</span>
   </div>
 );
 
+// -------------------------------------------------------------------------
+// 4. MAIN CINEMATIC FOOTER COMPONENT
+// -------------------------------------------------------------------------
 export function CinematicFooter() {
-  const wrapperRef = useRef<HTMLDivElement>(null);
+  const footerRef = useRef<HTMLElement>(null);
   const giantTextRef = useRef<HTMLDivElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const linksRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (!wrapperRef.current) return;
+    if (!footerRef.current) return;
 
     // React strict mode compatible GSAP context cleanup
     const ctx = gsap.context(() => {
-      // Background Parallax
-      gsap.fromTo(
-        giantTextRef.current,
-        { y: "10vh", scale: 0.8, opacity: 0 },
-        {
-          y: "0vh",
-          scale: 1,
-          opacity: 1,
-          ease: "power1.out",
-          scrollTrigger: {
-            trigger: wrapperRef.current,
-            start: "top 80%",
-            end: "bottom bottom",
-            scrub: 1,
-          },
-        }
-      );
+      // Parallax for giant background watermark text
+      if (giantTextRef.current) {
+        gsap.fromTo(
+          giantTextRef.current,
+          { y: "3vh", opacity: 0.6 },
+          {
+            y: "-3vh",
+            opacity: 1,
+            ease: "none",
+            scrollTrigger: {
+              trigger: footerRef.current,
+              start: "top bottom",
+              end: "bottom top",
+              scrub: 1,
+            },
+          }
+        );
+      }
 
-      // Staggered Content Reveal
+      // Smooth subtle entrance for heading and links
       gsap.fromTo(
         [headingRef.current, linksRef.current],
-        { y: 50, opacity: 0 },
+        { y: 20, opacity: 0.7 },
         {
           y: 0,
           opacity: 1,
-          stagger: 0.15,
-          ease: "power3.out",
+          stagger: 0.1,
+          duration: 0.7,
+          ease: "power2.out",
           scrollTrigger: {
-            trigger: wrapperRef.current,
-            start: "top 40%",
-            end: "bottom bottom",
-            scrub: 1,
+            trigger: footerRef.current,
+            start: "top 90%",
+            once: true,
           },
         }
       );
-    }, wrapperRef);
+    }, footerRef);
 
     return () => ctx.revert();
-  },[]);
+  }, []);
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -333,155 +332,142 @@ export function CinematicFooter() {
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: STYLES }} />
-      
-      {/* 
-        The "Curtain Reveal" Wrapper:
-        It sits in standard flow. Because it has clip-path, its contents
-        are ONLY visible within its bounding box. 
-      */}
-      <div
-        ref={wrapperRef}
-        className="relative h-screen w-full"
-        style={{ clipPath: "polygon(0% 0, 100% 0%, 100% 100%, 0 100%)" }}
+
+      <footer
+        ref={footerRef}
+        className="relative z-20 flex w-full flex-col justify-between overflow-hidden bg-[var(--color-cream-logo)] text-[var(--color-espresso)] cinematic-footer-wrapper pt-12 pb-8 sm:pt-16 sm:pb-10 min-h-[560px]"
       >
-        {/* The actual footer stays fixed to the viewport underneath everything */}
-        <footer 
-          className="fixed bottom-0 left-0 flex h-screen w-full flex-col justify-between overflow-hidden cinematic-footer-wrapper bg-[var(--color-cream-logo)]"
+        {/* Ambient Light & Grid Background */}
+        <div className="footer-aurora absolute left-1/2 top-1/2 h-[60vh] w-[80vw] -translate-x-1/2 -translate-y-1/2 animate-footer-breathe rounded-[50%] blur-[80px] pointer-events-none z-0" />
+        <div className="footer-bg-grid absolute inset-0 z-0 pointer-events-none" />
+
+        {/* Giant background text mask with Parallax */}
+        <div
+          ref={giantTextRef}
+          className="footer-giant-bg-text absolute -bottom-[1vh] left-1/2 -translate-x-1/2 whitespace-nowrap z-0 pointer-events-none select-none font-serif"
         >
-          
-          {/* Ambient Light & Grid Background (Removed) */}
+          COZY CRAFT
+        </div>
 
-          {/* 1. Diagonal Sleek Marquee (Top of footer) */}
-          <div className="absolute top-12 left-0 w-full overflow-hidden border-y border-[var(--color-taupe)]/25 py-4 z-10 -rotate-2 scale-110">
-            <div className={cn("flex w-max animate-footer-scroll-marquee text-xs font-medium tracking-widest text-[var(--color-espresso-soft)] uppercase", akayaKanadaka.className)}>
-              <MarqueeItem />
-              <MarqueeItem />
+        {/* 1. Diagonal Sleek Marquee (Top of footer) */}
+        <div className="relative w-full overflow-hidden border-y border-[var(--color-taupe)]/35 bg-[var(--color-cream-logo)]/85 backdrop-blur-md py-3 sm:py-3.5 z-10 -rotate-1 scale-105 shadow-xs mb-8 sm:mb-12">
+          <div className={cn("flex w-max animate-footer-scroll-marquee text-xs md:text-sm font-bold tracking-[0.25em] text-[var(--color-espresso-soft)] uppercase", akayaKanadaka.className)}>
+            <MarqueeItem />
+            <MarqueeItem />
+          </div>
+        </div>
+
+        {/* 2. Main Center Content (Logo, Heading, CTAs, Secondary Links, Contact) */}
+        <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-4 sm:px-6 w-full max-w-5xl mx-auto my-3 sm:my-6">
+          {/* Cozy Craft Logo */}
+          <Link href="/" aria-label="Cozy Craft home" className="mx-auto block w-fit mb-3 sm:mb-4">
+            <Image
+              src="/assets/logo.png"
+              alt="Cozy Craft"
+              width={360}
+              height={180}
+              className="h-20 sm:h-24 md:h-28 w-auto object-contain"
+            />
+          </Link>
+
+          <h2
+            ref={headingRef}
+            className={cn("text-3xl sm:text-5xl md:text-6xl text-[var(--color-espresso)] font-serif mb-5 sm:mb-7 text-center footer-text-glow", blackOpsOne.className)}
+          >
+            Handmade for You
+          </h2>
+
+          {/* Interactive Magnetic Pills Layout */}
+          <div ref={linksRef} className="flex flex-col items-center gap-4 sm:gap-5 w-full">
+            {/* Primary Shop Links */}
+            <div className={cn("flex flex-wrap justify-center gap-3 sm:gap-4 w-full", akayaKanadaka.className)}>
+              <MagneticButton as="a" href="/shop/flower-bouquets" className="footer-glass-pill px-6 sm:px-8 py-3 sm:py-3.5 rounded-full text-[var(--color-espresso)] font-bold text-sm md:text-base flex items-center gap-2.5 group">
+                <Flower2 className="h-5 w-5 text-[var(--color-sage-deep)] group-hover:scale-110 transition-transform" strokeWidth={1.5} />
+                Shop Bouquets
+              </MagneticButton>
+
+              <MagneticButton as="a" href="/shop/keychains" className="footer-glass-pill px-6 sm:px-8 py-3 sm:py-3.5 rounded-full text-[var(--color-espresso)] font-bold text-sm md:text-base flex items-center gap-2.5 group">
+                <KeyRound className="h-5 w-5 text-[var(--color-sage-deep)] group-hover:scale-110 transition-transform" strokeWidth={1.5} />
+                Shop Keychains
+              </MagneticButton>
+
+              <MagneticButton as="a" href="/collections/gift-bundles" className="footer-glass-pill px-6 sm:px-8 py-3 sm:py-3.5 rounded-full text-[var(--color-espresso)] font-bold text-sm md:text-base flex items-center gap-2.5 group">
+                <Gift className="h-5 w-5 text-[var(--color-sage-deep)] group-hover:scale-110 transition-transform" strokeWidth={1.5} />
+                Gift Bundles
+              </MagneticButton>
+            </div>
+
+            {/* Secondary Info Links */}
+            <div className={cn("flex flex-wrap justify-center gap-2.5 sm:gap-4 w-full text-xs sm:text-sm", akayaKanadaka.className)}>
+              <MagneticButton as="a" href="/about" className="footer-glass-pill px-4 sm:px-6 py-2 sm:py-2.5 rounded-full text-[var(--color-espresso-soft)] font-medium hover:text-[var(--color-espresso)]">
+                About Us
+              </MagneticButton>
+              <MagneticButton as="a" href="/contact" className="footer-glass-pill px-4 sm:px-6 py-2 sm:py-2.5 rounded-full text-[var(--color-espresso-soft)] font-medium hover:text-[var(--color-espresso)]">
+                Contact
+              </MagneticButton>
+              <MagneticButton as="a" href="/policies/shipping-returns" className="footer-glass-pill px-4 sm:px-6 py-2 sm:py-2.5 rounded-full text-[var(--color-espresso-soft)] font-medium hover:text-[var(--color-espresso)]">
+                Shipping & Returns
+              </MagneticButton>
+              <MagneticButton as="a" href="/policies/privacy" className="footer-glass-pill px-4 sm:px-6 py-2 sm:py-2.5 rounded-full text-[var(--color-espresso-soft)] font-medium hover:text-[var(--color-espresso)]">
+                Privacy Policy
+              </MagneticButton>
+            </div>
+
+            {/* Contact Details */}
+            <div className={cn("mt-1 sm:mt-2 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs sm:text-sm text-[var(--color-espresso-soft)]", akayaKanadaka.className)}>
+              <a href="mailto:k7616168@gmail.com" className="inline-flex items-center gap-1.5 hover:text-[var(--color-espresso)] transition-colors">
+                <Mail className="h-4 w-4 text-[var(--color-sage-deep)]" strokeWidth={1.5} /> k7616168@gmail.com
+              </a>
+              <a href="tel:+919999999999" className="inline-flex items-center gap-1.5 hover:text-[var(--color-espresso)] transition-colors">
+                <Phone className="h-4 w-4 text-[var(--color-sage-deep)]" strokeWidth={1.5} /> +91 99999 99999
+              </a>
+              <span className="inline-flex items-center gap-1.5">
+                <MapPin className="h-4 w-4 text-[var(--color-sage-deep)]" strokeWidth={1.5} /> Ramaipatti, Mirzapur, 231001, UP, India
+              </span>
+              <a
+                href="https://instagram.com/cozycrafts"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 hover:text-[var(--color-espresso)] transition-colors"
+              >
+                <InstagramIcon className="h-4 w-4 text-[var(--color-sage-deep)]" /> @cozycrafts
+              </a>
             </div>
           </div>
+        </div>
 
-          {/* 2. Main Center Content */}
-          <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-6 mt-20 w-full max-w-5xl mx-auto">
-            <Link href="/" aria-label="Cozy Craft home" className="mx-auto block w-fit mb-6">
-              <Image 
-                src="/assets/logo.png" 
-                alt="Cozy Craft" 
-                width={320}
-                height={160}
-                className="h-20 w-auto sm:h-24" 
-              />
-            </Link>
-            
-            <h2
-              ref={headingRef}
-              className={cn("text-5xl text-[var(--color-espresso)] sm:text-6xl mb-12 text-center", blackOpsOne.className)}
-            >
-              Handmade for You
-            </h2>
+        {/* 3. Bottom Bar / Credits (3-column grid for true center alignment) */}
+        <div className={cn("relative z-20 w-full pt-8 pb-4 px-4 sm:px-12 grid grid-cols-1 sm:grid-cols-3 items-center gap-4 text-sm mt-8 border-t border-[var(--color-taupe)]/20", akayaKanadaka.className)}>
+          {/* Copyright */}
+          <p className="text-center sm:text-left text-[var(--color-espresso-soft)] text-[10px] md:text-xs font-semibold tracking-widest uppercase">
+            © {new Date().getFullYear()} Cozy Craft. All rights reserved.
+          </p>
 
-            {/* Interactive Magnetic Pills Layout */}
-            <div ref={linksRef} className="flex flex-col items-center gap-6 w-full">
-              {/* Primary Links */}
-              <div className={cn("flex flex-wrap items-center justify-center gap-4 w-full mt-10", akayaKanadaka.className)}>
-                <MagneticButton as="a" href="/shop/flower-bouquets" className="inline-flex items-center gap-2 rounded-full border border-[var(--color-sage)]/50 px-6 py-3 text-sm text-[var(--color-espresso)] transition-colors hover:bg-[var(--color-sage)]/10">
-                  <Flower2 className="h-4 w-4 text-[var(--color-sage-deep)]" strokeWidth={1.5} />
-                  Shop Bouquets
-                </MagneticButton>
-                
-                <MagneticButton as="a" href="/shop/keychains" className="inline-flex items-center gap-2 rounded-full border border-[var(--color-sage)]/50 px-6 py-3 text-sm text-[var(--color-espresso)] transition-colors hover:bg-[var(--color-sage)]/10">
-                  <KeyRound className="h-4 w-4 text-[var(--color-sage-deep)]" strokeWidth={1.5} />
-                  Shop Keychains
-                </MagneticButton>
-                
-                <MagneticButton as="a" href="/collections/gift-bundles" className="inline-flex items-center gap-2 rounded-full border border-[var(--color-sage)]/50 px-6 py-3 text-sm text-[var(--color-espresso)] transition-colors hover:bg-[var(--color-sage)]/10">
-                  <Gift className="h-4 w-4 text-[var(--color-sage-deep)]" strokeWidth={1.5} />
-                  Gift Bundles
-                </MagneticButton>
-              </div>
-
-              {/* Secondary Text Links */}
-              <div className={cn("flex flex-wrap items-center justify-center gap-3 w-full mt-6 text-sm", akayaKanadaka.className)}>
-                <MagneticButton as="a" href="/about" className="rounded-full border border-[var(--color-taupe)]/40 px-5 py-2 text-[var(--color-espresso-soft)] transition-colors hover:border-[var(--color-taupe)] hover:text-[var(--color-espresso)]">
-                  About Us
-                </MagneticButton>
-                <MagneticButton as="a" href="/contact" className="rounded-full border border-[var(--color-taupe)]/40 px-5 py-2 text-[var(--color-espresso-soft)] transition-colors hover:border-[var(--color-taupe)] hover:text-[var(--color-espresso)]">
-                  Contact
-                </MagneticButton>
-                <MagneticButton as="a" href="/policies/shipping" className="rounded-full border border-[var(--color-taupe)]/40 px-5 py-2 text-[var(--color-espresso-soft)] transition-colors hover:border-[var(--color-taupe)] hover:text-[var(--color-espresso)]">
-                  Shipping & Returns
-                </MagneticButton>
-                <MagneticButton as="a" href="/policies/privacy" className="rounded-full border border-[var(--color-taupe)]/40 px-5 py-2 text-[var(--color-espresso-soft)] transition-colors hover:border-[var(--color-taupe)] hover:text-[var(--color-espresso)]">
-                  Privacy Policy
-                </MagneticButton>
-              </div>
-
-              {/* Contact Details */}
-              <div className={cn("mt-10 flex flex-col items-center gap-2 text-sm text-[var(--color-espresso-soft)]", akayaKanadaka.className)}>
-                <a href="mailto:k7616168@gmail.com" className="inline-flex items-center gap-2 hover:text-[var(--color-espresso)]">
-                  <Mail className="h-4 w-4" strokeWidth={1.5} /> k7616168@gmail.com
-                </a>
-              
-                {/* TODO: replace with the real business phone number before launch */}
-                <a href="tel:+919999999999" className="inline-flex items-center gap-2 hover:text-[var(--color-espresso)]">
-                  <Phone className="h-4 w-4" strokeWidth={1.5} /> +91 99999 99999
-                </a>
-              
-                <p className="inline-flex items-center gap-2">
-                  <MapPin className="h-4 w-4" strokeWidth={1.5} /> Ramaipatti, Mirzapur, 231001, Uttar Pradesh, India
-                </p>
-              
-                {/* TODO: replace with the real Instagram handle before launch */}
-                <a
-                  href="https://instagram.com/cozycrafts"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 hover:text-[var(--color-espresso)]"
-                >
-                  <InstagramIcon className="h-4 w-4" /> @cozycrafts
-                </a>
-              </div>
-            </div>
-          </div>
-
-          {/* 3. Bottom Bar / Credits */}
-          <div className={cn("relative z-20 w-full pb-8 px-6 md:px-12 flex flex-col md:flex-row items-center justify-between gap-6", akayaKanadaka.className)}>
-            
-            {/* Copyright */}
-            <div className="text-[var(--color-espresso-soft)] text-[10px] md:text-xs font-semibold tracking-widest uppercase order-2 md:order-1">
-              © {new Date().getFullYear()} Cozy Craft. All rights reserved.
-            </div>
-
-            {/* "Made with Love" Badge */}
-            <div className="flex items-center gap-2 order-1 md:order-2 cursor-default bg-transparent px-6 py-3 rounded-full border border-[var(--color-taupe)]/40">
+          {/* "Made with Love" Badge - Visually Centered */}
+          <div className="flex justify-center">
+            <div className="footer-glass-pill px-5 sm:px-6 py-2.5 rounded-full flex items-center gap-2 cursor-default border-[var(--color-taupe)]/40">
               <span className="text-[var(--color-espresso-soft)] text-[10px] md:text-xs font-bold uppercase tracking-widest">Handcrafted with</span>
               <Heart className="h-4 w-4 text-[var(--color-destructive)] fill-[var(--color-destructive)] animate-footer-heartbeat" strokeWidth={1.5} />
               <span className="text-[var(--color-espresso-soft)] text-[10px] md:text-xs font-bold uppercase tracking-widest">by</span>
               <span className="text-[var(--color-espresso)] font-black text-xs md:text-sm tracking-normal ml-1">Cozy Craft</span>
             </div>
+          </div>
 
-            {/* Back to top */}
+          {/* Back to top */}
+          <div className="flex justify-center sm:justify-end">
             <MagneticButton
               as="button"
               onClick={scrollToTop}
-              className="w-12 h-12 rounded-full flex items-center justify-center text-[var(--color-espresso-soft)] hover:text-[var(--color-sage-deep)] bg-transparent border border-[var(--color-taupe)]/40 transition-colors group order-3"
+              className="w-10 h-10 sm:w-12 sm:h-12 rounded-full footer-glass-pill flex items-center justify-center text-[var(--color-espresso-soft)] hover:text-[var(--color-espresso)] transition-colors group"
+              aria-label="Back to top"
             >
               <svg className="w-5 h-5 transform group-hover:-translate-y-1.5 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
               </svg>
             </MagneticButton>
-
           </div>
-
-          <div className="relative mt-8 h-[12vw] max-h-28 min-h-[56px] overflow-hidden sm:h-[9vw]">
-            <span
-              aria-hidden="true"
-              className="absolute inset-x-0 top-0 select-none whitespace-nowrap text-center font-serif font-semibold leading-none text-[var(--color-espresso)]/[0.05]"
-              style={{ fontSize: "18vw" }}
-            >
-              COZY CRAFT
-            </span>
-          </div>
-        </footer>
-      </div>
+        </div>
+      </footer>
     </>
   );
 }

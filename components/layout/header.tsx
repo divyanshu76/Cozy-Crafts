@@ -32,7 +32,7 @@ export function Header() {
     <>
       <header
         className={cn(
-          "sticky top-0 z-30 w-full bg-cream transition-all duration-300",
+          "sticky top-0 z-50 w-full bg-[var(--color-cream)] transition-all duration-300",
           {
             "shadow-sm py-3": isScrolled,
             "py-5 lg:py-6": !isScrolled,
@@ -58,10 +58,10 @@ export function Header() {
               <Image
                 src="/assets/logo.png"
                 alt="Cozy Craft"
-                width={220}
-                height={64}
+                width={260}
+                height={76}
                 priority
-                className={cn("w-auto transition-all duration-300", isScrolled ? "h-7 lg:h-9" : "h-9 md:h-12 lg:h-14")}
+                className={cn("w-auto transition-all duration-300", isScrolled ? "h-10 md:h-12 lg:h-14" : "h-12 sm:h-14 md:h-16 lg:h-20")}
               />
             </Link>
             <div className="hidden md:block">

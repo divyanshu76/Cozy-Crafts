@@ -6,6 +6,10 @@ import { ArrowRight } from "lucide-react"
 import { motion } from "framer-motion"
 import { fadeUp, staggerContainer } from "@/lib/motion"
 import { Button } from "@/components/ui/button"
+import { Eagle_Lake, Protest_Riot } from "next/font/google"
+
+const eagleLake = Eagle_Lake({ weight: "400", subsets: ["latin"] });
+const protestRiot = Protest_Riot({ weight: "400", subsets: ["latin"] });
 
 export function Hero() {
   return (
@@ -21,11 +25,13 @@ export function Hero() {
             whileInView="visible"
             viewport={{ once: true, margin: "-80px" }}
           >
-            <motion.p variants={fadeUp} className="text-sage font-medium uppercase tracking-widest text-xs mb-4">
-              Handmade &middot; Small Batch &middot; Made in India
+            <motion.p variants={fadeUp} className="text-xs uppercase tracking-widest text-[var(--color-sage-deep)] font-medium mb-4">
+              Handmade · Small Batch · Made in India
             </motion.p>
-            <motion.h1 variants={fadeUp} className="font-serif text-4xl sm:text-5xl lg:text-[4rem] leading-tight text-espresso mb-6">
-              Little Things,<br />Made With Love.
+            <motion.h1 variants={fadeUp} className="text-5xl leading-tight text-[var(--color-espresso)] sm:text-6xl lg:text-[4rem] mb-6">
+              <span className={eagleLake.className}>Little Things,</span>
+              <br />
+              <span className={protestRiot.className}>Made With Love.</span>
             </motion.h1>
             <motion.p variants={fadeUp} className="text-espresso-soft text-lg mb-8 max-w-md">
               Handcrafted gifts, tiny treasures and thoughtful details — made to bring a little more joy to everyday moments.

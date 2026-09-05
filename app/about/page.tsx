@@ -9,7 +9,7 @@ export default function AboutPage() {
   return (
     <div className="container mx-auto px-4 md:px-6 py-12 md:py-20 max-w-4xl">
       <div className="text-center mb-16">
-        <h1 className="font-serif text-4xl md:text-5xl text-espresso mb-6">About Cozy Craft</h1>
+        <h1 className="font-eagle-lake text-4xl md:text-5xl text-espresso mb-6">About Cozy Craft</h1>
         <p className="text-lg text-espresso-soft max-w-2xl mx-auto leading-relaxed">
           It started with a single pipe-cleaner flower on a tiny desk in Mumbai, and grew into a space for little things made with a lot of love.
         </p>

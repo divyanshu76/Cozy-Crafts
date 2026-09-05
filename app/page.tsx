@@ -1,3 +1,4 @@
+import { AnnouncementRibbon } from "@/components/layout/announcement-ribbon"
 import { Hero } from "@/components/sections/hero"
 import { CategoryTiles } from "@/components/sections/category-tiles"
 import { ProductCarousel } from "@/components/products/product-carousel"
@@ -19,6 +20,7 @@ export default async function Home() {
 
   return (
     <div className="flex flex-col w-full">
+      <AnnouncementRibbon />
       <Hero />
       <CategoryTiles />
       
