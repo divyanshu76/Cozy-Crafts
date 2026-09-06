@@ -16,13 +16,13 @@ export function StorySection() {
             whileInView={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
             viewport={{ once: true, margin: "-80px" }}
-            className="relative h-[400px] md:h-[500px] lg:h-[600px] rounded-2xl overflow-hidden"
+            className="relative h-[400px] md:h-[500px] lg:h-[600px] rounded-2xl overflow-hidden group"
           >
             <Image
-              src="/products/placeholder.svg"
-              alt="Hands shaping a pipe-cleaner flower"
+              src="/assets/Not%20mass-made.%20Made%20with%20meaning.png"
+              alt="Handmade Cozy Craft products — not mass-made, made with meaning"
               fill
-              className="object-cover"
+              className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
               sizes="(min-width: 768px) 50vw, 100vw"
             />
           </motion.div>

@@ -3,6 +3,7 @@ import { Hero } from "@/components/sections/hero"
 import { CategoryTiles } from "@/components/sections/category-tiles"
 import { ProductCarousel } from "@/components/products/product-carousel"
 import { StorySection } from "@/components/sections/story-section"
+import { AboutSection } from "@/components/sections/about-section"
 import { FeaturedTabs } from "@/components/sections/featured-tabs"
 import { TrustSection } from "@/components/sections/trust-section"
 import { Gallery } from "@/components/sections/gallery"
@@ -37,6 +38,8 @@ export default async function Home() {
       <ScrollRevealHeadline text="Not mass-made. Made with meaning." />
 
       <StorySection />
+
+      <AboutSection />
       
       <FeaturedTabs featuredProducts={featured} newArrivals={newArrivals} />
       

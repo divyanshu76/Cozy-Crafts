@@ -49,33 +49,46 @@ export function Hero() {
 
           {/* Image Composition */}
           <div className="md:col-span-6 lg:col-span-7 flex justify-center order-1 md:order-2 w-full">
+            {/*
+              On mobile: we give the container extra bottom padding so the
+              overlapping small image doesn't get clipped.
+              On md+: the small image can safely sit at -bottom-8 / -left-8.
+            */}
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               whileInView={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
               viewport={{ once: true }}
-              className="relative aspect-[4/5] w-full max-w-xl"
+              className="relative aspect-[4/5] w-full max-w-xl pb-16 md:pb-0"
             >
               {/* Base large image */}
-              <div className="relative h-full w-full overflow-hidden rounded-2xl bg-cream-soft">
+              <div className="relative h-full w-full overflow-hidden rounded-2xl bg-cream-soft group">
                 <Image
-                  src="/products/placeholder.svg"
-                  alt="Handmade Cozy Craft flower bouquet and keychain, styled on a cream background"
+                  src="/assets/hero1.png"
+                  alt="Handmade Cozy Craft bouquet and charms styled on a cream background"
                   fill
                   priority
-                  className="object-cover"
+                  className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
+                  sizes="(min-width: 1280px) 600px, (min-width: 768px) 50vw, 90vw"
                 />
               </div>
 
-              {/* Smaller overlapping image — anchored to the SAME relative parent, positioned inside its bounds */}
-              <div className="absolute -bottom-8 -left-8 h-40 w-40 overflow-hidden rounded-xl border-4 border-cream bg-cream-soft shadow-lg sm:h-48 sm:w-48">
+              {/* Smaller overlapping image — secondary accent, NOT a mobile replacement */}
+              <motion.div
+                initial={{ opacity: 0, x: 20, y: 20 }}
+                whileInView={{ opacity: 1, x: 0, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                viewport={{ once: true }}
+                className="absolute bottom-0 -left-4 h-32 w-32 overflow-hidden rounded-xl border-4 border-cream bg-cream-soft shadow-xl sm:h-40 sm:w-40 md:-bottom-8 md:-left-8 md:h-48 md:w-48 group"
+              >
                 <Image
-                  src="/products/placeholder.svg"
-                  alt="Close-up of a handmade Cozy Craft charm"
+                  src="/assets/hero-small.png"
+                  alt="Close-up of a handmade Cozy Craft keychain or charm"
                   fill
-                  className="object-cover"
+                  className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.05]"
+                  sizes="(min-width: 768px) 192px, 128px"
                 />
-              </div>
+              </motion.div>
             </motion.div>
           </div>
         </div>

@@ -9,11 +9,11 @@ import { Camera } from "lucide-react"
 import Link from "next/link"
 
 const images = [
-  { id: 1, src: "/products/placeholder.svg", alt: "Gallery Image 1", className: "col-span-1 row-span-1" },
-  { id: 2, src: "/products/placeholder.svg", alt: "Gallery Image 2", className: "col-span-2 row-span-2" },
-  { id: 3, src: "/products/placeholder.svg", alt: "Gallery Image 3", className: "col-span-1 row-span-1" },
-  { id: 4, src: "/products/placeholder.svg", alt: "Gallery Image 4", className: "col-span-1 row-span-1" },
-  { id: 5, src: "/products/placeholder.svg", alt: "Gallery Image 5", className: "col-span-1 row-span-1" },
+  { id: 1, src: "/assets/Lifestyle%20Section1.png", alt: "Life with Cozy Craft — handmade keychain styled in a cozy setting", className: "col-span-1 row-span-1" },
+  { id: 2, src: "/assets/Lifestyle%20Section2.png", alt: "Life with Cozy Craft — handmade bouquet in a lifestyle flat lay", className: "col-span-2 row-span-2" },
+  { id: 3, src: "/assets/Lifestyle%20Section3%20.png", alt: "Life with Cozy Craft — handmade charm accessory", className: "col-span-1 row-span-1" },
+  { id: 4, src: "/assets/Lifestyle%20Section4.png", alt: "Life with Cozy Craft — personalized gift detail", className: "col-span-1 row-span-1" },
+  { id: 5, src: "/assets/Lifestyle%20Section5.png", alt: "Life with Cozy Craft — handmade gift bundle unboxing", className: "col-span-1 row-span-1" },
 ]
 
 export function Gallery() {

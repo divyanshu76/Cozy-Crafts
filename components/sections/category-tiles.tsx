@@ -6,11 +6,11 @@ import { motion } from "framer-motion"
 import { fadeUp, staggerContainer } from "@/lib/motion"
 
 const categories = [
-  { name: "Gift Bundles", slug: "gift-bundles", image: "/products/placeholder.svg", isLarge: true },
-  { name: "Keychains", slug: "keychains", image: "/products/placeholder.svg" },
-  { name: "Bouquets", slug: "flower-bouquets", image: "/products/placeholder.svg" },
-  { name: "Charms", slug: "charms", image: "/products/placeholder.svg" },
-  { name: "Personalized", slug: "personalized-gifts", image: "/products/placeholder.svg" },
+  { name: "Gift Bundles", slug: "gift-bundles", image: "/assets/categories-gift-bundle.png", isLarge: true },
+  { name: "Keychains", slug: "keychains", image: "/assets/Categories-keychains.png" },
+  { name: "Bouquets", slug: "flower-bouquets", image: "/assets/Categories-bouquets.png" },
+  { name: "Charms", slug: "charms", image: "/assets/Categories-charms.png" },
+  { name: "Personalized", slug: "personalized-gifts", image: "/assets/Categories-%20Personalized%20Gifts.png" },
 ]
 
 export function CategoryTiles() {
