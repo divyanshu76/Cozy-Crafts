@@ -154,7 +154,7 @@ export async function POST(req: NextRequest) {
   const total = Math.max(subtotal - discount + shippingFee + codFee, 0);
 
   // ── 5. Upsert customer record ─────────────────────────────────────────────
-  const { data: customer } = await supabase
+  const { data: customer, error: customerError } = await supabase
     .from("customers")
     .insert({
       email: address.email,
@@ -164,8 +164,20 @@ export async function POST(req: NextRequest) {
     .select()
     .single();
 
+  if (customerError) {
+    console.error("Customer insertion failed:", customerError);
+    // Continue anyway without linking a customer if we can't create one.
+  }
+
   // ── 6. Generate order number (atomic via DB function) ─────────────────────
-  const { data: orderNumberRow } = await supabase.rpc("next_order_number");
+  const { data: orderNumberRow, error: rpcError } = await supabase.rpc("next_order_number");
+  if (rpcError || !orderNumberRow) {
+    console.error("Order number generation failed:", rpcError);
+    return NextResponse.json(
+      { error: "Could not generate order number. Please try again." },
+      { status: 500 }
+    );
+  }
   const publicOrderNumber = orderNumberRow as unknown as string;
 
   // ── 7. Create order row ───────────────────────────────────────────────────

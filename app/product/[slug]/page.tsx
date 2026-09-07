@@ -10,6 +10,7 @@ import { RelatedProducts } from "@/components/products/related-products"
 import Link from "next/link"
 import { ChevronRight } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { OfferTimer } from "@/components/products/offer-timer"
 
 interface ProductPageProps {
   params: Promise<{
@@ -45,12 +46,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
     getRelatedProducts(product.id, product.category)
   ]);
 
-  const accordionItems = [
-    {
-      id: "description",
-      title: "Description",
-      content: <div className="whitespace-pre-line text-espresso-soft leading-relaxed">{product.description}</div>
-    },
+  const accordionItems: any[] = [
     {
       id: "details",
       title: "Materials & Care",
@@ -82,6 +78,15 @@ export default async function ProductPage({ params }: ProductPageProps) {
       )
     }
   ];
+
+  // Only add Full Description to Accordion if Short Description exists and differs
+  if (product.shortDescription && product.description && product.description !== product.shortDescription) {
+    accordionItems.unshift({
+      id: "description",
+      title: "Full Description",
+      content: <div className="whitespace-pre-line text-espresso-soft leading-relaxed">{product.description}</div>
+    });
+  }
 
   const productJsonLd = {
     "@context": "https://schema.org",
@@ -159,6 +164,10 @@ export default async function ProductPage({ params }: ProductPageProps) {
               </div>
             )}
             
+            {product.offerEnabled && product.offerEndAt && (
+              <OfferTimer offerEndAt={product.offerEndAt} />
+            )}
+
             <p className="text-espresso-soft text-lg mb-8 leading-relaxed">
               {product.shortDescription || product.description}
             </p>

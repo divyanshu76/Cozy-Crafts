@@ -14,6 +14,8 @@ interface ProductPreviewProps {
   isNew: boolean;
   isBestSeller: boolean;
   isActive: boolean;
+  offerEnabled?: boolean;
+  offerEndAt?: string;
   images: UploadedImage[];
 }
 
@@ -28,6 +30,8 @@ export function ProductPreview({
   isNew,
   isBestSeller,
   isActive,
+  offerEnabled,
+  offerEndAt,
   images,
 }: ProductPreviewProps) {
   const [activeImg, setActiveImg] = React.useState(0);
@@ -148,6 +152,13 @@ export function ProductPreview({
             <p className="text-sm text-espresso-soft leading-relaxed line-clamp-3">
               {shortDescription}
             </p>
+          )}
+
+          {/* Offer */}
+          {offerEnabled && offerEndAt && (
+             <div className="flex items-center gap-2 bg-red-50 text-red-700 px-3 py-1.5 rounded-md border border-red-100 mt-2">
+               <span className="text-xs font-medium tracking-wide">Offer ends in: Xd Yh Zm</span>
+             </div>
           )}
 
           {/* Colors */}

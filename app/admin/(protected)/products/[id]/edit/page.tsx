@@ -51,6 +51,8 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
     isNew: product.is_new,
     isBestSeller: product.is_best_seller,
     isActive: product.active,
+    offerEnabled: product.offer_enabled,
+    offerEndAt: product.offer_end_at,
     sku: product.sku || "",
     stock: baseStock,
     colors,

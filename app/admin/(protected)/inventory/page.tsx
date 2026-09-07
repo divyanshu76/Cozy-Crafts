@@ -19,7 +19,8 @@ export default async function AdminInventoryPage() {
     <div>
       <h1 className="font-serif text-3xl text-espresso mb-8">Inventory</h1>
       <div className="bg-white rounded-xl border border-taupe/20 shadow-sm overflow-hidden">
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-taupe/10 text-left text-xs text-espresso-soft uppercase tracking-wider">
               <th className="px-5 py-3 font-medium">Product</th>
@@ -35,14 +36,14 @@ export default async function AdminInventoryPage() {
               const updateStockAction = updateStock.bind(null, inv.id);
               return (
                 <tr key={inv.id} className="border-b border-taupe/5 hover:bg-cream/50 transition-colors">
-                  <td className="px-5 py-3.5 font-medium text-espresso">{product?.name ?? inv.product_id}</td>
-                  <td className="px-5 py-3.5 text-espresso-soft">{variant?.label ?? "—"}</td>
-                  <td className="px-5 py-3.5">
+                  <td className="px-5 py-3.5 font-medium text-espresso whitespace-nowrap">{product?.name ?? inv.product_id}</td>
+                  <td className="px-5 py-3.5 text-espresso-soft whitespace-nowrap">{variant?.label ?? "—"}</td>
+                  <td className="px-5 py-3.5 whitespace-nowrap">
                     <span className={`font-bold ${inv.stock === 0 ? "text-red-600" : inv.stock <= 5 ? "text-amber-600" : "text-sage"}`}>
                       {inv.stock}
                     </span>
                   </td>
-                  <td className="px-5 py-3.5">
+                  <td className="px-5 py-3.5 whitespace-nowrap">
                     <form action={async (fd: FormData) => {
                       "use server";
                       await updateStockAction(Number(fd.get("stock") ?? 0));
@@ -69,6 +70,7 @@ export default async function AdminInventoryPage() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

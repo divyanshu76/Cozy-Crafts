@@ -48,6 +48,8 @@ export interface CreateProductPayload {
   is_new: boolean;
   is_best_seller: boolean;
   active: boolean;
+  offer_enabled?: boolean;
+  offer_end_at?: string;
   // Stock
   stock: number;
   // Variants (colors)
@@ -121,6 +123,8 @@ export async function POST(req: NextRequest) {
       is_new: body.is_new,
       is_best_seller: body.is_best_seller,
       active: body.active,
+      offer_enabled: body.offer_enabled ?? false,
+      offer_end_at: body.offer_end_at || null,
     })
     .select("id")
     .single();

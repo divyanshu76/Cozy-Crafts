@@ -5,8 +5,9 @@ import { useCartStore } from "@/hooks/useCartStore"
 import { useWishlistStore } from "@/hooks/useWishlistStore"
 import { useToast } from "@/components/ui/toast"
 import { Button } from "@/components/ui/button"
-import { Heart, Minus, Plus, ShoppingBag } from "lucide-react"
+import { Heart, Minus, Plus, ShoppingBag, Zap } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useRouter } from "next/navigation"
 
 interface AddToCartProps {
   product: Product;
@@ -21,6 +22,7 @@ export function AddToCart({ product }: AddToCartProps) {
   const addItem = useCartStore((state) => state.addItem);
   const { isInWishlist, toggleItem } = useWishlistStore();
   const { toast } = useToast();
+  const router = useRouter();
 
   const variant = product.variants?.find(v => v.id === selectedVariant);
   const maxStock = variant ? variant.stock : product.stock;
@@ -48,6 +50,12 @@ export function AddToCart({ product }: AddToCartProps) {
     
     const itemName = variant ? `${product.name} (${variant.label})` : product.name;
     toast(`Added ${quantity} ${itemName} to cart`, "success");
+  };
+
+  const handleBuyNow = () => {
+    if (maxStock === 0) return;
+    handleAdd();
+    router.push("/checkout");
   };
 
   const handleWishlist = () => {
@@ -123,19 +131,31 @@ export function AddToCart({ product }: AddToCartProps) {
               <Plus size={18} />
             </button>
           </div>
-          
-          <Button 
-            className="flex-1 h-14 rounded-full text-base font-medium shadow-sm hover:shadow transition-all bg-espresso hover:bg-espresso/90 text-white" 
-            onClick={handleAdd}
-            disabled={maxStock === 0}
-          >
-            {maxStock === 0 ? "Out of Stock" : (
+          <div className="flex flex-1 gap-2 flex-col sm:flex-row">
+            <Button 
+              className="flex-1 h-14 rounded-full text-base font-medium shadow-sm hover:shadow transition-all bg-espresso hover:bg-espresso/90 text-white" 
+              onClick={handleAdd}
+              disabled={maxStock === 0}
+            >
+              {maxStock === 0 ? "Out of Stock" : (
+                <span className="flex items-center gap-2">
+                  <ShoppingBag size={18} />
+                  Add to Cart
+                </span>
+              )}
+            </Button>
+
+            <Button 
+              className="flex-1 h-14 rounded-full text-base font-medium shadow-sm hover:shadow transition-all bg-sage hover:bg-sage/90 text-white" 
+              onClick={handleBuyNow}
+              disabled={maxStock === 0}
+            >
               <span className="flex items-center gap-2">
-                <ShoppingBag size={18} />
-                Add to Cart
+                <Zap size={18} />
+                Buy Now
               </span>
-            )}
-          </Button>
+            </Button>
+          </div>
           
           <Button 
             variant="outline" 

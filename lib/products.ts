@@ -22,6 +22,8 @@ type SupabaseProduct = {
   tags: string[] | null;
   rating: number;
   review_count: number;
+  offer_enabled: boolean;
+  offer_end_at: string | null;
   created_at: string;
   categories: { slug: string } | null;
   images: { url: string; alt_text: string | null; position: number }[];
@@ -60,6 +62,8 @@ function mapToProduct(p: SupabaseProduct): Product {
     materials: p.materials ?? [],
     careInstructions: p.care_instructions ?? "",
     personalizationAvailable: p.personalization_available,
+    offerEnabled: p.offer_enabled ?? false,
+    offerEndAt: p.offer_end_at ?? undefined,
     createdAt: p.created_at,
   };
 }
@@ -67,7 +71,8 @@ function mapToProduct(p: SupabaseProduct): Product {
 const PRODUCT_SELECT = `
   id, name, slug, description, short_description, price, compare_at_price, category_id,
   materials, care_instructions, personalization_available,
-  is_featured, is_new, is_best_seller, tags, rating, review_count, created_at,
+  is_featured, is_new, is_best_seller, tags, rating, review_count, 
+  offer_enabled, offer_end_at, created_at,
   categories ( slug ),
   images:product_images ( url, alt_text, position ),
   variants:product_variants ( id, label, price_override ),

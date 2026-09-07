@@ -74,6 +74,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       is_new: body.is_new,
       is_best_seller: body.is_best_seller,
       active: body.active,
+      offer_enabled: body.offer_enabled ?? false,
+      offer_end_at: body.offer_end_at || null,
     })
     .eq("id", productId);
 

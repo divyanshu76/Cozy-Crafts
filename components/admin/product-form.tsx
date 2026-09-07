@@ -178,11 +178,19 @@ export function ProductForm({ initialCategories, initialData }: ProductFormProps
   const [stock, setStock] = React.useState(initialData?.stock?.toString() || "");
   const [sku, setSku] = React.useState(initialData?.sku || "");
 
-  // ── Flags ────────────────────────────────
+  // ── Flags & Offers ────────────────────────
   const [isFeatured, setIsFeatured] = React.useState(initialData?.isFeatured ?? false);
   const [isNew, setIsNew] = React.useState(initialData?.isNew ?? false);
   const [isBestSeller, setIsBestSeller] = React.useState(initialData?.isBestSeller ?? false);
   const [isActive, setIsActive] = React.useState(initialData?.isActive ?? true);
+  const [offerEnabled, setOfferEnabled] = React.useState(initialData?.offerEnabled ?? false);
+  
+  // Input type="datetime-local" needs YYYY-MM-DDThh:mm
+  const formatForInput = (isoString?: string) => {
+    if (!isoString) return "";
+    return new Date(isoString).toISOString().slice(0, 16);
+  };
+  const [offerEndAt, setOfferEndAt] = React.useState(formatForInput(initialData?.offerEndAt));
 
   // ── State ────────────────────────────────
   const [errors, setErrors] = React.useState<FormErrors>({});
@@ -292,6 +300,8 @@ export function ProductForm({ initialCategories, initialData }: ProductFormProps
         is_new: isNew,
         is_best_seller: isBestSeller,
         active: isActive,
+        offer_enabled: offerEnabled,
+        offer_end_at: offerEnabled && offerEndAt ? new Date(offerEndAt).toISOString() : undefined,
         stock: parseInt(stock, 10),
         variants: colors.map((c) => ({ label: c })),
         images: uploadedImages,
@@ -665,6 +675,29 @@ export function ProductForm({ initialCategories, initialData }: ProductFormProps
               />
             </Section>
 
+            {/* 8. Offers */}
+            <Section number={8} title="Limited Time Offer">
+              <Toggle
+                id="toggle-offer"
+                label="Enable Offer"
+                description="Display a countdown timer for a special discount."
+                checked={offerEnabled}
+                onChange={setOfferEnabled}
+              />
+              {offerEnabled && (
+                <div className="mt-4 pt-4 border-t border-taupe/10">
+                  <Field label="Offer End Date & Time" required htmlFor="offer-end">
+                    <Input
+                      id="offer-end"
+                      type="datetime-local"
+                      value={offerEndAt}
+                      onChange={(e) => setOfferEndAt(e.target.value)}
+                    />
+                  </Field>
+                </div>
+              )}
+            </Section>
+
             {/* Action buttons */}
             <div className="flex items-center justify-between pt-2 pb-8">
               <Button
@@ -706,6 +739,8 @@ export function ProductForm({ initialCategories, initialData }: ProductFormProps
               isNew={isNew}
               isBestSeller={isBestSeller}
               isActive={isActive}
+              offerEnabled={offerEnabled}
+              offerEndAt={offerEnabled && offerEndAt ? new Date(offerEndAt).toISOString() : undefined}
               images={images}
             />
           </div>
@@ -724,6 +759,8 @@ export function ProductForm({ initialCategories, initialData }: ProductFormProps
             isNew={isNew}
             isBestSeller={isBestSeller}
             isActive={isActive}
+            offerEnabled={offerEnabled}
+            offerEndAt={offerEnabled && offerEndAt ? new Date(offerEndAt).toISOString() : undefined}
             images={images}
           />
         </div>

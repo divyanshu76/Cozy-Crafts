@@ -65,23 +65,26 @@ export default async function AdminLayout({
   if (profile?.role !== "admin") redirect("/admin/login");
 
   return (
-    <div className="min-h-screen flex bg-[#f5f0eb]">
+    <div className="min-h-screen flex flex-col md:flex-row bg-[#f5f0eb]">
       {/* Sidebar */}
-      <aside className="w-64 shrink-0 bg-[#2c1f14] text-cream flex flex-col min-h-screen sticky top-0 h-screen">
-        <div className="p-6 border-b border-white/10">
-          <p className="text-xs text-cream/50 uppercase tracking-widest mb-1">
-            Admin Panel
-          </p>
-          <p className="font-serif text-xl text-cream">Cozy Craft</p>
+      <aside className="w-full md:w-64 shrink-0 bg-[#2c1f14] text-cream flex flex-col md:min-h-screen md:sticky top-0 md:h-screen">
+        <div className="p-6 border-b border-white/10 flex justify-between items-center md:block">
+          <div>
+            <p className="text-xs text-cream/50 uppercase tracking-widest mb-1">
+              Admin Panel
+            </p>
+            <p className="font-serif text-xl text-cream">Cozy Craft</p>
+          </div>
+          {/* Mobile menu toggle could go here if needed, but for now we just show it all or let it stack */}
         </div>
 
-        <nav className="flex-1 overflow-y-auto py-4 px-3">
-          <ul className="space-y-1">
+        <nav className="flex-1 overflow-x-auto md:overflow-y-auto py-4 px-3 flex md:flex-col gap-2 md:gap-0 no-scrollbar">
+          <ul className="flex md:flex-col gap-1 w-full">
             {NAV_LINKS.map(({ href, label, icon: Icon }) => (
-              <li key={href}>
+              <li key={href} className="shrink-0 md:shrink">
                 <Link
                   href={href}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-cream/70 hover:text-cream hover:bg-white/10 transition-colors text-sm font-medium"
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-cream/70 hover:text-cream hover:bg-white/10 transition-colors text-sm font-medium whitespace-nowrap"
                 >
                   <Icon className="h-4 w-4 shrink-0" />
                   {label}
@@ -91,8 +94,8 @@ export default async function AdminLayout({
           </ul>
         </nav>
 
-        <div className="p-4 border-t border-white/10">
-          <p className="text-xs text-cream/40 mb-3 truncate">
+        <div className="p-4 border-t border-white/10 flex items-center justify-between md:flex-col md:items-start md:gap-3">
+          <p className="text-xs text-cream/40 truncate max-w-[150px] md:max-w-full">
             {session.user.email}
           </p>
           <form
@@ -129,8 +132,8 @@ export default async function AdminLayout({
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 overflow-auto">
-        <div className="p-8">{children}</div>
+      <main className="flex-1 overflow-x-hidden">
+        <div className="p-4 md:p-8">{children}</div>
       </main>
     </div>
   );

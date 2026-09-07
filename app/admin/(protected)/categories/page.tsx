@@ -11,7 +11,8 @@ export default async function AdminCategoriesPage() {
     <div>
       <h1 className="font-serif text-3xl text-espresso mb-8">Categories</h1>
       <div className="bg-white rounded-xl border border-taupe/20 shadow-sm overflow-hidden">
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-taupe/10 text-left text-xs text-espresso-soft uppercase tracking-wider">
               <th className="px-5 py-3 font-medium">Name</th>
@@ -22,9 +23,9 @@ export default async function AdminCategoriesPage() {
           <tbody>
             {(categories ?? []).map((c) => (
               <tr key={c.id} className="border-b border-taupe/5 hover:bg-cream/50 transition-colors">
-                <td className="px-5 py-3.5 font-medium text-espresso">{c.name}</td>
-                <td className="px-5 py-3.5 font-mono text-xs text-taupe">{c.slug}</td>
-                <td className="px-5 py-3.5 text-espresso-soft">{c.description ?? "—"}</td>
+                <td className="px-5 py-3.5 font-medium text-espresso whitespace-nowrap">{c.name}</td>
+                <td className="px-5 py-3.5 font-mono text-xs text-taupe whitespace-nowrap">{c.slug}</td>
+                <td className="px-5 py-3.5 text-espresso-soft whitespace-nowrap">{c.description ?? "—"}</td>
               </tr>
             ))}
             {(categories ?? []).length === 0 && (
@@ -34,6 +35,7 @@ export default async function AdminCategoriesPage() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );
