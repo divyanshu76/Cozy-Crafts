@@ -1,12 +1,16 @@
 "use client";
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@supabase/supabase-js";
+import { createBrowserClient } from "@supabase/ssr";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AlertCircle, Loader2 } from "lucide-react";
 
-const supabase = createClient(
+// MUST use createBrowserClient (from @supabase/ssr), NOT createClient (from @supabase/supabase-js).
+// createBrowserClient stores the session in cookies so that server components,
+// proxy.ts, and the protected layout can all read the auth state.
+// createClient uses localStorage by default, which is invisible to the server.
+const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
