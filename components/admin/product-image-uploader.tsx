@@ -6,8 +6,8 @@ import { cn } from "@/lib/utils";
 export interface UploadedImage {
   /** Local object URL for preview (revoked on unmount) */
   previewUrl: string;
-  /** File object — used for actual upload */
-  file: File;
+  /** File object — optional for existing images */
+  file?: File;
   /** Set after successful upload */
   uploadedUrl?: string;
   /** Storage path for potential cleanup */

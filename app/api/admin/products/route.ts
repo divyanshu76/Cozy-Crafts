@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { revalidatePath } from "next/cache";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 /** Verify the caller is an authenticated admin. */
@@ -111,6 +112,7 @@ export async function POST(req: NextRequest) {
       name: body.name.trim(),
       slug: body.slug.trim(),
       description: body.description?.trim() || null,
+      short_description: body.short_description?.trim() || null,
       price: body.price,
       compare_at_price: body.compare_at_price ?? null,
       category_id: body.category_id || null,
@@ -196,6 +198,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  revalidatePath("/", "layout");
   return NextResponse.json({ ok: true, productId }, { status: 201 });
 }
 

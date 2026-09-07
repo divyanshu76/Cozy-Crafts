@@ -119,19 +119,22 @@ function Field({ label, required, error, htmlFor, children, hint }: {
 // ─────────────────────────────────────────────
 interface ProductFormProps {
   initialCategories: Category[];
+  initialData?: any;
 }
 
-export function ProductForm({ initialCategories }: ProductFormProps) {
+export function ProductForm({ initialCategories, initialData }: ProductFormProps) {
   const router = useRouter();
   const { toast } = useToast();
 
+  const isEditMode = !!initialData;
+
   // ── Images ────────────────────────────────
-  const [images, setImages] = React.useState<UploadedImage[]>([]);
+  const [images, setImages] = React.useState<UploadedImage[]>(initialData?.images || []);
 
   // ── Basic info ────────────────────────────
-  const [name, setName] = React.useState("");
-  const [slug, setSlug] = React.useState("");
-  const [slugManuallyEdited, setSlugManuallyEdited] = React.useState(false);
+  const [name, setName] = React.useState(initialData?.name || "");
+  const [slug, setSlug] = React.useState(initialData?.slug || "");
+  const [slugManuallyEdited, setSlugManuallyEdited] = React.useState(!!initialData?.slug);
 
   // Auto-generate slug from name (unless manually edited)
   React.useEffect(() => {
@@ -139,16 +142,16 @@ export function ProductForm({ initialCategories }: ProductFormProps) {
   }, [name, slugManuallyEdited]);
 
   // ── Description ───────────────────────────
-  const [shortDescription, setShortDescription] = React.useState("");
-  const [fullDescription, setFullDescription] = React.useState("");
+  const [shortDescription, setShortDescription] = React.useState(initialData?.shortDescription || "");
+  const [fullDescription, setFullDescription] = React.useState(initialData?.description || "");
   const SHORT_DESC_LIMIT = 300;
 
   // ── Category ──────────────────────────────
-  const [categoryId, setCategoryId] = React.useState("");
+  const [categoryId, setCategoryId] = React.useState(initialData?.categoryId || "");
   const selectedCategory = initialCategories.find((c) => c.id === categoryId);
 
   // ── Colors ────────────────────────────────
-  const [colors, setColors] = React.useState<string[]>([]);
+  const [colors, setColors] = React.useState<string[]>(initialData?.colors || []);
   const [colorInput, setColorInput] = React.useState("");
   const [showColorInput, setShowColorInput] = React.useState(false);
   const colorInputRef = React.useRef<HTMLInputElement>(null);
@@ -170,16 +173,16 @@ export function ProductForm({ initialCategories }: ProductFormProps) {
   }
 
   // ── Pricing ───────────────────────────────
-  const [price, setPrice] = React.useState("");
-  const [compareAtPrice, setCompareAtPrice] = React.useState("");
-  const [stock, setStock] = React.useState("");
-  const [sku, setSku] = React.useState("");
+  const [price, setPrice] = React.useState(initialData?.price?.toString() || "");
+  const [compareAtPrice, setCompareAtPrice] = React.useState(initialData?.compareAtPrice?.toString() || "");
+  const [stock, setStock] = React.useState(initialData?.stock?.toString() || "");
+  const [sku, setSku] = React.useState(initialData?.sku || "");
 
   // ── Flags ────────────────────────────────
-  const [isFeatured, setIsFeatured] = React.useState(false);
-  const [isNew, setIsNew] = React.useState(false);
-  const [isBestSeller, setIsBestSeller] = React.useState(false);
-  const [isActive, setIsActive] = React.useState(true);
+  const [isFeatured, setIsFeatured] = React.useState(initialData?.isFeatured ?? false);
+  const [isNew, setIsNew] = React.useState(initialData?.isNew ?? false);
+  const [isBestSeller, setIsBestSeller] = React.useState(initialData?.isBestSeller ?? false);
+  const [isActive, setIsActive] = React.useState(initialData?.isActive ?? true);
 
   // ── State ────────────────────────────────
   const [errors, setErrors] = React.useState<FormErrors>({});
@@ -247,11 +250,18 @@ export function ProductForm({ initialCategories }: ProductFormProps) {
 
       for (let i = 0; i < images.length; i++) {
         const img = images[i];
+
+        // If it's an existing image (no file object), just add its URL to the final payload
+        if (!img.file) {
+          uploadedImages.push({ url: img.previewUrl, alt_text: name || undefined, position: i });
+          continue;
+        }
+
         setUploadProgress(`Uploading image ${i + 1} of ${images.length}…`);
 
         const formData = new FormData();
         formData.append("file", img.file);
-        formData.append("productId", tempId);
+        formData.append("productId", isEditMode ? initialData.id : tempId);
 
         const res = await fetch("/api/admin/upload-image", {
           method: "POST",
@@ -306,11 +316,11 @@ export function ProductForm({ initialCategories }: ProductFormProps) {
         throw new Error(data.error ?? "Failed to create product.");
       }
 
-      toast("Product added successfully.", "success");
+      toast(isEditMode ? "Product updated successfully." : "Product created successfully.", "success");
       router.push("/admin/products");
       router.refresh();
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "An unexpected error occurred.";
+    } catch (err: any) {
+      const msg = err.message || "An unexpected error occurred.";
       setErrors({ global: msg });
       toast(msg, "error");
     } finally {
@@ -327,8 +337,8 @@ export function ProductForm({ initialCategories }: ProductFormProps) {
       {/* Page header */}
       <div className="flex items-start justify-between mb-8 gap-4">
         <div>
-          <h1 className="font-serif text-3xl text-espresso">Add Product</h1>
-          <p className="text-espresso-soft mt-1 text-sm">Create a beautiful product for your Cozy Craft store.</p>
+          <h1 className="font-serif text-3xl text-espresso">{isEditMode ? "Edit Product" : "Add Product"}</h1>
+          <p className="text-espresso-soft mt-1 text-sm">{isEditMode ? "Update the details for this product." : "Create a beautiful product for your Cozy Craft store."}</p>
         </div>
         <div className="flex items-center gap-3 shrink-0">
           <Button
@@ -674,10 +684,10 @@ export function ProductForm({ initialCategories }: ProductFormProps) {
                 {saving ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    {uploadProgress ?? "Adding product…"}
+                    {uploadProgress ?? "Saving…"}
                   </>
                 ) : (
-                  "Add Product"
+                  isEditMode ? "Save Changes" : "Add Product"
                 )}
               </Button>
             </div>

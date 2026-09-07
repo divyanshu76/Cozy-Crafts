@@ -2,6 +2,7 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { Package, Plus } from "lucide-react";
 import Link from "next/link";
 import { ToastProvider } from "@/components/ui/toast";
+import { ProductActions } from "@/components/admin/product-actions";
 
 export default async function AdminProductsPage() {
   const supabase = getSupabaseServerClient();
@@ -37,6 +38,7 @@ export default async function AdminProductsPage() {
                 <th className="px-5 py-3 font-medium">Price</th>
                 <th className="px-5 py-3 font-medium">Flags</th>
                 <th className="px-5 py-3 font-medium">Status</th>
+                <th className="px-5 py-3 font-medium text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -61,6 +63,9 @@ export default async function AdminProductsPage() {
                       <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${p.active ? "bg-sage/10 text-sage" : "bg-red-100 text-red-700"}`}>
                         {p.active ? "Active" : "Inactive"}
                       </span>
+                    </td>
+                    <td className="px-5 py-3.5 text-right">
+                      <ProductActions productId={p.id} slug={p.slug} productName={p.name} />
                     </td>
                   </tr>
                 );

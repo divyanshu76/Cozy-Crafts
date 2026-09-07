@@ -111,7 +111,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
             )}
             
             <p className="text-espresso-soft text-lg mb-8 leading-relaxed">
-              {product.description}
+              {product.shortDescription || product.description}
             </p>
 
             <AddToCart product={product} />

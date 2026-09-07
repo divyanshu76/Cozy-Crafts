@@ -9,6 +9,7 @@ type SupabaseProduct = {
   name: string;
   slug: string;
   description: string | null;
+  short_description: string | null;
   price: number;
   compare_at_price: number | null;
   category_id: string | null;
@@ -35,6 +36,7 @@ function mapToProduct(p: SupabaseProduct): Product {
     name: p.name,
     slug: p.slug,
     description: p.description ?? "",
+    shortDescription: p.short_description ?? undefined,
     price: p.price,
     compareAtPrice: p.compare_at_price ?? undefined,
     images: p.images
@@ -63,7 +65,7 @@ function mapToProduct(p: SupabaseProduct): Product {
 }
 
 const PRODUCT_SELECT = `
-  id, name, slug, description, price, compare_at_price, category_id,
+  id, name, slug, description, short_description, price, compare_at_price, category_id,
   materials, care_instructions, personalization_available,
   is_featured, is_new, is_best_seller, tags, rating, review_count, created_at,
   categories ( slug ),

@@ -10,6 +10,7 @@ export interface Product {
   name: string;
   slug: string;
   description: string;
+  shortDescription?: string;
   price: number;
   compareAtPrice?: number;
   images: string[]; // paths under /public/products/...
