@@ -62,9 +62,8 @@ export function EmailLayout({ children, previewText }: EmailLayoutProps) {
         >
           {/* Logo */}
           <Img
-            src="https://cozycraft.example/assets/logo.png"
-            width={120}
-            height={36}
+            src="https://www.cozycrafts.shop/assets/logo.png"
+            width={160}
             alt="Cozy Craft"
             style={{ display: "block", margin: "0 auto 32px" }}
           />
@@ -73,7 +72,20 @@ export function EmailLayout({ children, previewText }: EmailLayoutProps) {
           {children}
 
           {/* Footer */}
-          <Hr style={{ margin: "36px 0 24px", borderColor: "#CBB8A2" }} />
+          <Hr style={{ margin: "36px 0 24px", borderColor: "#EAE2D6" }} />
+          <Text
+            style={{
+              fontSize: 14,
+              color: "#3E2C22",
+              textAlign: "center",
+              lineHeight: "1.6",
+              margin: "0 0 16px",
+              fontFamily: "'Fraunces', Georgia, serif",
+              fontStyle: "italic",
+            }}
+          >
+            Made by hand, packed with care, and sent with love. ♡
+          </Text>
           <Text
             style={{
               fontSize: 12,
@@ -86,12 +98,16 @@ export function EmailLayout({ children, previewText }: EmailLayoutProps) {
             Questions? Email us at{" "}
             <Link
               href="mailto:k7616168@gmail.com"
-              style={{ color: "#7A9E7E" }}
+              style={{ color: "#9BAA8C", textDecoration: "underline" }}
             >
               k7616168@gmail.com
             </Link>
             <br />
             Cozy Craft · Ramaipatti, Mirzapur, 231001, Uttar Pradesh, India
+            <br />
+            <Link href="https://www.cozycrafts.shop/" style={{ color: "#9BAA8C", textDecoration: "none", marginTop: "8px", display: "inline-block" }}>
+              www.cozycrafts.shop
+            </Link>
           </Text>
         </Container>
       </Body>

@@ -18,7 +18,7 @@ import { useSearchParams } from "next/navigation";
 
 const trackSchema = z.object({
   orderNumber: z.string().min(5, "Enter your order number"),
-  contact: z.string().min(5, "Enter your email or phone number"),
+  contact: z.string().min(5, "Enter your email or phone number").optional(),
 });
 
 type TrackFormValues = z.infer<typeof trackSchema>;
@@ -69,14 +69,21 @@ interface OrderResult {
 function TrackOrderContent() {
   const searchParams = useSearchParams();
   const prefillOrderNumber = searchParams.get("order") ?? "";
+  const token = searchParams.get("token") ?? undefined;
 
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [result, setResult] = React.useState<OrderResult | null>(null);
 
+  // If we have a token, we don't strictly require contact info
+  const trackSchemaDynamic = z.object({
+    orderNumber: z.string().min(5, "Enter your order number"),
+    contact: token ? z.string().optional() : z.string().min(5, "Enter your email or phone number"),
+  });
+
   const { register, handleSubmit, formState: { errors } } = useForm<TrackFormValues>({
-    resolver: zodResolver(trackSchema),
-    defaultValues: { orderNumber: prefillOrderNumber },
+    resolver: zodResolver(trackSchemaDynamic),
+    defaultValues: { orderNumber: prefillOrderNumber, contact: "" },
   });
 
   const onSubmit = async (data: TrackFormValues) => {
@@ -88,7 +95,7 @@ function TrackOrderContent() {
       const res = await fetch("/api/track-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, token }),
       });
 
       const json = await res.json();
@@ -105,77 +112,107 @@ function TrackOrderContent() {
     }
   };
 
+  React.useEffect(() => {
+    if (prefillOrderNumber && token && !result && !isLoading && !error) {
+      handleSubmit(onSubmit)();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefillOrderNumber, token]);
+
   return (
     <div className="min-h-screen bg-cream selection:bg-sage/20 py-16 px-4 sm:px-6 lg:px-8">
       <div className="max-w-2xl mx-auto space-y-8">
         <div className="text-center">
           <h1 className="font-serif text-3xl md:text-4xl text-espresso mb-3">Track Your Order</h1>
           <p className="text-espresso-soft text-lg font-sans">
-            Enter your order number and contact info to see its status.
+            Enter your order number {token ? "to see its status." : "and contact info to see its status."}
           </p>
         </div>
 
         {/* ── Lookup Form ── */}
-        <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-taupe/20">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-espresso ml-1">Order Number</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-espresso-soft">
-                    <Search className="h-4 w-4" />
+        {!token && (
+          <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-taupe/20">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-espresso ml-1">Order Number</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-espresso-soft">
+                      <Search className="h-4 w-4" />
+                    </div>
+                    <Input
+                      {...register("orderNumber")}
+                      placeholder="e.g. CC-20260905-0001"
+                      className="pl-10 bg-cream-soft border-taupe/30 focus-visible:ring-sage focus-visible:border-sage placeholder:text-espresso-soft/50 h-11"
+                    />
                   </div>
-                  <Input
-                    {...register("orderNumber")}
-                    placeholder="e.g. CC-20260905-0001"
-                    className="pl-10 bg-cream-soft border-taupe/30 focus-visible:ring-sage focus-visible:border-sage placeholder:text-espresso-soft/50 h-11"
-                  />
+                  {errors.orderNumber && (
+                    <p className="text-red-500 text-xs ml-1 font-medium">{errors.orderNumber.message}</p>
+                  )}
                 </div>
-                {errors.orderNumber && (
-                  <p className="text-red-500 text-xs ml-1 font-medium">{errors.orderNumber.message}</p>
-                )}
+
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-espresso ml-1">Email or Phone</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-espresso-soft">
+                      <MapPin className="h-4 w-4" />
+                    </div>
+                    <Input
+                      {...register("contact")}
+                      placeholder="Used during checkout"
+                      className="pl-10 bg-cream-soft border-taupe/30 focus-visible:ring-sage focus-visible:border-sage placeholder:text-espresso-soft/50 h-11"
+                    />
+                  </div>
+                  {errors.contact && (
+                    <p className="text-red-500 text-xs ml-1 font-medium">{errors.contact.message}</p>
+                  )}
+                </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-espresso ml-1">Email or Phone</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-espresso-soft">
-                    <MapPin className="h-4 w-4" />
-                  </div>
-                  <Input
-                    {...register("contact")}
-                    placeholder="Used during checkout"
-                    className="pl-10 bg-cream-soft border-taupe/30 focus-visible:ring-sage focus-visible:border-sage placeholder:text-espresso-soft/50 h-11"
-                  />
-                </div>
-                {errors.contact && (
-                  <p className="text-red-500 text-xs ml-1 font-medium">{errors.contact.message}</p>
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="w-full h-12 bg-espresso hover:bg-espresso/90 text-cream text-base rounded-xl transition-all"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Tracking...
+                  </>
+                ) : (
+                  "Track Order"
                 )}
+              </Button>
+            </form>
+
+            {error && (
+              <div className="mt-5 p-4 rounded-xl bg-red-50 border border-red-100 flex items-start gap-3 text-red-800">
+                <AlertCircle className="h-5 w-5 shrink-0 mt-0.5 text-red-600" />
+                <p className="text-sm font-medium">{error}</p>
               </div>
-            </div>
-
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="w-full h-12 bg-espresso hover:bg-espresso/90 text-cream text-base rounded-xl transition-all"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Tracking...
-                </>
-              ) : (
-                "Track Order"
-              )}
-            </Button>
-          </form>
-
-          {error && (
-            <div className="mt-5 p-4 rounded-xl bg-red-50 border border-red-100 flex items-start gap-3 text-red-800">
+            )}
+          </div>
+        )}
+        
+        {token && error && (
+          <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-taupe/20">
+            <div className="p-4 rounded-xl bg-red-50 border border-red-100 flex items-start gap-3 text-red-800">
               <AlertCircle className="h-5 w-5 shrink-0 mt-0.5 text-red-600" />
-              <p className="text-sm font-medium">{error}</p>
+              <div className="flex-1">
+                <p className="text-sm font-medium mb-2">{error}</p>
+                <Button variant="outline" size="sm" onClick={() => window.location.href = '/track-order'} className="bg-white">
+                  Try Manual Tracking
+                </Button>
+              </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
+
+        {token && isLoading && !result && !error && (
+          <div className="bg-white p-12 rounded-2xl shadow-sm border border-taupe/20 flex flex-col items-center justify-center text-espresso-soft">
+            <Loader2 className="h-8 w-8 animate-spin mb-4 text-sage" />
+            <p>Finding your order details...</p>
+          </div>
+        )}
 
         {/* ── Results ── */}
         {result && (

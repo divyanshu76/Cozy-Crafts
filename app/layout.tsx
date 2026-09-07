@@ -21,8 +21,46 @@ const manrope = Manrope({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.cozycrafts.shop"),
-  title: "Cozy Craft | Little Things, Made With Love",
-  description: "Handcrafted gifts, tiny treasures and thoughtful details — made to bring a little more joy to everyday moments.",
+  title: {
+    template: "%s | Cozy Craft",
+    default: "Cozy Craft | Handmade Gifts, Keychains & Bouquets",
+  },
+  description:
+    "Discover Cozy Craft's collection of handcrafted gifts, personalized keychains, and beautiful artificial bouquets. Little things, made with love in India.",
+  keywords: ["handmade gifts", "personalized keychains", "artificial bouquets", "Cozy Craft", "custom gifts India"],
+  authors: [{ name: "Cozy Craft" }],
+  creator: "Cozy Craft",
+  publisher: "Cozy Craft",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  openGraph: {
+    title: "Cozy Craft | Handmade Gifts & Keychains",
+    description: "Discover Cozy Craft's collection of handcrafted gifts, personalized keychains, and beautiful artificial bouquets. Little things, made with love.",
+    url: "https://www.cozycrafts.shop",
+    siteName: "Cozy Craft",
+    images: [
+      {
+        url: "https://www.cozycrafts.shop/assets/og-image.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Cozy Craft - Handmade Gifts",
+      },
+    ],
+    locale: "en_IN",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Cozy Craft | Handmade Gifts",
+    description: "Handcrafted gifts, tiny treasures and thoughtful details.",
+    images: ["https://www.cozycrafts.shop/assets/og-image.jpg"],
+  },
+  alternates: {
+    canonical: "/",
+  },
 };
 
 const organizationJsonLd = {

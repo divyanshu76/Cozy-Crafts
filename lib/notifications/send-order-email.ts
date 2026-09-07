@@ -30,6 +30,10 @@ export async function sendOrderEmail(orderId: string, trigger: EmailTrigger) {
 
     const customer = order.customers as { email: string; full_name: string };
 
+    // Generate tracking token
+    const { generateOrderToken } = await import("@/lib/crypto");
+    const trackingToken = generateOrderToken(order.public_order_number);
+
     const orderData: OrderForEmail = {
       publicOrderNumber: order.public_order_number,
       total: Number(order.total),
@@ -37,12 +41,13 @@ export async function sendOrderEmail(orderId: string, trigger: EmailTrigger) {
       discount: Number(order.discount),
       shippingFee: Number(order.shipping_fee),
       customerEmail: customer.email,
-      customerName: customer.full_name,
+      customerName: customer.full_name || "there",
       awbNumber: order.awb_number,
       courierName: order.courier_name,
       estimatedDeliveryDate: order.estimated_delivery_date,
       paymentMethod: order.payment_method,
       codFee: Number(order.cod_fee ?? 0),
+      trackingToken,
       items: order.order_items.map((item: any) => ({
         id: item.id,
         productName: item.product_name_snapshot,
@@ -56,11 +61,15 @@ export async function sendOrderEmail(orderId: string, trigger: EmailTrigger) {
     // 3. Render and send
     const { subject, react } = renderEmailForTrigger(trigger, orderData);
 
+    const textFallback = `Order ${order.public_order_number} Update: ${subject}\n\nTrack your order here: https://www.cozycrafts.shop/track-order?order=${order.public_order_number}&token=${trackingToken}\n\nThank you for choosing Cozy Craft!`;
+
     const result = await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL!,
+      from: "Cozy Craft <orders@cozycrafts.shop>",
+      replyTo: "k7616168@gmail.com",
       to: customer.email,
       subject,
       react,
+      text: textFallback,
     });
 
     if (result.error) {

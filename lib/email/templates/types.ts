@@ -26,4 +26,5 @@ export interface OrderForEmail {
     unitPrice: number;
     lineTotal: number;
   }[];
+  trackingToken?: string;
 }

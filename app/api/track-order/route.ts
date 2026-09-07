@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { verifyOrderToken } from "@/lib/crypto";
 
 const schema = z.object({
   orderNumber: z.string().min(5),
-  contact: z.string().min(5), // email or phone
+  contact: z.string().optional(), // email or phone, optional if token is provided
+  token: z.string().optional(),
 });
 
 /**
@@ -14,6 +16,7 @@ const schema = z.object({
  * If it looks like an email (contains @), returns lowercased as-is.
  */
 const normalizeContact = (raw: string): string => {
+  if (!raw) return "";
   const trimmed = raw.trim();
   if (trimmed.includes("@")) return trimmed.toLowerCase();
   const digits = trimmed.replace(/\D/g, "");
@@ -27,7 +30,7 @@ export async function POST(req: NextRequest) {
   const ip =
     req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
   const allowed = await checkRateLimit(`track-order:${ip}`, {
-    max: 5,
+    max: 10, // increased to allow token-based clicks
     windowSeconds: 60,
   });
 
@@ -50,8 +53,13 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { orderNumber, contact } = parsed.data;
-    const normalizedInput = normalizeContact(contact);
+    const { orderNumber, contact, token } = parsed.data;
+    
+    // Validate that either token OR contact is provided
+    if (!token && !contact) {
+      return NextResponse.json({ error: "Email/Phone or Secure Token is required." }, { status: 400 });
+    }
+
     const supabase = getSupabaseServerClient();
 
     // ── Fetch order + customer ────────────────────────────────────────────────
@@ -92,14 +100,29 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Verify contact info
-    const addr = order.shipping_address_snapshot as { phone: string; email: string };
-    const orderPhone = normalizeContact(addr.phone || "");
-    const orderEmail = (addr.email || "").toLowerCase();
+    // Verify authorization: Token OR Contact Info
+    let isAuthorized = false;
 
-    if (normalizedInput !== orderPhone && normalizedInput !== orderEmail) {
+    if (token) {
+      if (verifyOrderToken(order.public_order_number, token)) {
+        isAuthorized = true;
+      }
+    }
+
+    if (!isAuthorized && contact) {
+      const normalizedInput = normalizeContact(contact);
+      const addr = order.shipping_address_snapshot as { phone: string; email: string };
+      const orderPhone = normalizeContact(addr?.phone || "");
+      const orderEmail = (addr?.email || "").toLowerCase();
+
+      if (normalizedInput === orderPhone || normalizedInput === orderEmail) {
+        isAuthorized = true;
+      }
+    }
+
+    if (!isAuthorized) {
       return NextResponse.json(
-        { error: "Contact information does not match the order." },
+        { error: "Unauthorized. Contact information does not match the order or invalid token." },
         { status: 401 }
       );
     }
@@ -143,3 +166,4 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
