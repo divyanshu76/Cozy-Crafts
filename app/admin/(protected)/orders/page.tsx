@@ -88,6 +88,7 @@ export default async function AdminOrdersPage(props: {
                         day: "numeric",
                         month: "short",
                         year: "numeric",
+                        timeZone: "Asia/Kolkata",
                       })}
                     </td>
                     <td className="px-5 py-4 text-espresso-soft">

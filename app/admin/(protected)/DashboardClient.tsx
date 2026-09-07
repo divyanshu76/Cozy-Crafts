@@ -197,6 +197,7 @@ export function DashboardClient({ stats }: { stats: DashboardStats }) {
                     {new Date(order.created_at).toLocaleDateString("en-IN", {
                       day: "numeric",
                       month: "short",
+                      timeZone: "Asia/Kolkata",
                     })}
                   </td>
                   <td className="px-5 py-4">

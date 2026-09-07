@@ -8,6 +8,20 @@ const schema = z.object({
   contact: z.string().min(5), // email or phone
 });
 
+/**
+ * Normalize an Indian phone number to bare 10-digit form.
+ * Strips whitespace, +91, country code 91, and leading 0.
+ * If it looks like an email (contains @), returns lowercased as-is.
+ */
+const normalizeContact = (raw: string): string => {
+  const trimmed = raw.trim();
+  if (trimmed.includes("@")) return trimmed.toLowerCase();
+  const digits = trimmed.replace(/\D/g, "");
+  if (digits.length === 12 && digits.startsWith("91")) return digits.slice(2);
+  if (digits.length === 11 && digits.startsWith("0")) return digits.slice(1);
+  return digits.length >= 10 ? digits.slice(-10) : digits;
+};
+
 export async function POST(req: NextRequest) {
   // ── Rate limiting: 5 attempts per IP per minute ───────────────────────────
   const ip =
@@ -37,6 +51,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const { orderNumber, contact } = parsed.data;
+    const normalizedInput = normalizeContact(contact);
     const supabase = getSupabaseServerClient();
 
     // ── Fetch order + customer ────────────────────────────────────────────────
@@ -79,7 +94,10 @@ export async function POST(req: NextRequest) {
 
     // Verify contact info
     const addr = order.shipping_address_snapshot as { phone: string; email: string };
-    if (addr.phone !== contact && addr.email !== contact) {
+    const orderPhone = normalizeContact(addr.phone || "");
+    const orderEmail = (addr.email || "").toLowerCase();
+
+    if (normalizedInput !== orderPhone && normalizedInput !== orderEmail) {
       return NextResponse.json(
         { error: "Contact information does not match the order." },
         { status: 401 }
@@ -87,7 +105,6 @@ export async function POST(req: NextRequest) {
     }
 
     // Filter out internal system changes for the customer-facing timeline
-    // order by created_at asc
     const timeline = (order.order_status_history as any[])
       .filter((h) => h.source !== "admin_manual")
       .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
@@ -97,15 +114,26 @@ export async function POST(req: NextRequest) {
         timestamp: h.created_at,
       }));
 
+    // ── Map items to the shape the frontend OrderResult type expects ──────────
+    const items = (order.order_items as any[]).map((i) => ({
+      name: i.product_name_snapshot,
+      image: i.product_image_snapshot ?? null,
+      quantity: i.quantity,
+      price: Number(i.unit_price_snapshot),
+    }));
+
     return NextResponse.json({
       orderNumber: order.public_order_number,
       orderStatus: order.status,
       paymentStatus: order.payment_status,
       shippingStatus: order.shipping_status,
-      awbNumber: order.awb_number,
-      courierName: order.courier_name,
-      estimatedDeliveryDate: order.estimated_delivery_date,
-      total: order.total,
+      awbNumber: order.awb_number ?? null,
+      courierName: order.courier_name ?? null,
+      estimatedDeliveryDate: order.estimated_delivery_date ?? null,
+      total: Number(order.total),
+      createdAt: order.created_at,
+      items,
+      timeline,
     });
   } catch (err: any) {
     console.error("[track-order] server error:", err);

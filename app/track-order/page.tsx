@@ -188,6 +188,7 @@ function TrackOrderContent() {
                   <p className="font-medium text-espresso">
                     {new Date(result.createdAt).toLocaleDateString("en-IN", {
                       day: "numeric", month: "long", year: "numeric",
+                      timeZone: "Asia/Kolkata",
                     })}
                   </p>
                 </div>
@@ -317,7 +318,7 @@ function TrackOrderContent() {
                          </div>
                          <div className="w-[calc(100%-2.5rem)] md:w-[calc(50%-1.5rem)] p-3 rounded bg-white border border-taupe/20 shadow-sm flex flex-col">
                            <span className="font-medium text-espresso text-sm">{event.status.replace(/_/g, ' ')}</span>
-                           <span className="text-xs text-espresso-soft">{new Date(event.timestamp).toLocaleString("en-IN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+                           <span className="text-xs text-espresso-soft">{new Date(event.timestamp).toLocaleString("en-IN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" })}</span>
                          </div>
                        </div>
                      ))}
