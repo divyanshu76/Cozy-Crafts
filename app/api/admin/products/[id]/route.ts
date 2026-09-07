@@ -168,7 +168,10 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const { error } = await adminDb.from("products").delete().eq("id", productId);
   if (error) {
     console.error("Product delete error:", error);
-    return NextResponse.json({ error: "Failed to delete product." }, { status: 500 });
+    if (error.code === '23503') {
+      return NextResponse.json({ error: "Cannot delete product because it has been ordered by customers. Please set the product to 'Inactive' instead to preserve order history." }, { status: 409 });
+    }
+    return NextResponse.json({ error: error.message || "Failed to delete product." }, { status: 500 });
   }
 
   revalidatePath("/", "layout");

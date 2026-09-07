@@ -62,17 +62,16 @@ function mapToProduct(p: SupabaseProduct): Product {
     materials: p.materials ?? [],
     careInstructions: p.care_instructions ?? "",
     personalizationAvailable: p.personalization_available,
-    offerEnabled: p.offer_enabled ?? false,
-    offerEndAt: p.offer_end_at ?? undefined,
+    offer_enabled: p.offer_enabled ?? false,
+    offer_end_at: p.offer_end_at ?? null,
     createdAt: p.created_at,
   };
 }
-
 const PRODUCT_SELECT = `
   id, name, slug, description, short_description, price, compare_at_price, category_id,
-  materials, care_instructions, personalization_available,
-  is_featured, is_new, is_best_seller, tags, rating, review_count, 
-  offer_enabled, offer_end_at, created_at,
+  sku, materials, care_instructions, personalization_available,
+  is_featured, is_new, is_best_seller, active, tags, rating, review_count, 
+  offer_enabled, offer_end_at, created_at, updated_at,
   categories ( slug ),
   images:product_images ( url, alt_text, position ),
   variants:product_variants ( id, label, price_override ),
@@ -86,7 +85,10 @@ export async function getProducts(): Promise<Product[]> {
     .eq("active", true)
     .order("created_at", { ascending: false });
 
-  if (error || !data) return [];
+  if (error || !data) {
+    console.error("getProducts Error:", error);
+    return [];
+  }
   return (data as unknown as SupabaseProduct[]).map(mapToProduct);
 }
 
@@ -100,7 +102,11 @@ export async function getProductBySlug(
     .eq("active", true)
     .maybeSingle();
 
-  if (error || !data) return undefined;
+  if (error) {
+    console.error("getProductBySlug Error:", error);
+    return undefined;
+  }
+  if (!data) return undefined;
   return mapToProduct(data as unknown as SupabaseProduct);
 }
 
@@ -133,7 +139,7 @@ export async function getProductsByCategory(
     ascending: false,
   });
 
-  if (error || !data) return [];
+  if (error) { console.error('Supabase Error:', error); return []; } if (!data) return [];
   const products = (data as unknown as SupabaseProduct[]).map(mapToProduct);
 
   // For real-category queries, the join filter may return rows with non-matching
@@ -153,7 +159,7 @@ export async function getFeaturedProducts(): Promise<Product[]> {
     .eq("is_featured", true)
     .order("created_at", { ascending: false });
 
-  if (error || !data) return [];
+  if (error) { console.error('Supabase Error:', error); return []; } if (!data) return [];
   return (data as unknown as SupabaseProduct[]).map(mapToProduct);
 }
 
@@ -165,7 +171,7 @@ export async function getBestSellers(): Promise<Product[]> {
     .eq("is_best_seller", true)
     .order("created_at", { ascending: false });
 
-  if (error || !data) return [];
+  if (error) { console.error('Supabase Error:', error); return []; } if (!data) return [];
   return (data as unknown as SupabaseProduct[]).map(mapToProduct);
 }
 
@@ -177,7 +183,7 @@ export async function getNewArrivals(): Promise<Product[]> {
     .eq("is_new", true)
     .order("created_at", { ascending: false });
 
-  if (error || !data) return [];
+  if (error) { console.error('Supabase Error:', error); return []; } if (!data) return [];
   return (data as unknown as SupabaseProduct[]).map(mapToProduct);
 }
 
@@ -187,7 +193,7 @@ export async function getCategories() {
     .select("id, name, slug, description")
     .order("name");
 
-  if (error || !data) return [];
+  if (error) { console.error('Supabase Error:', error); return []; } if (!data) return [];
   return data;
 }
 
@@ -215,7 +221,7 @@ export async function getReviewsForProduct(productId: string) {
     .eq("status", "approved")
     .order("created_at", { ascending: false });
 
-  if (error || !data) return [];
+  if (error) { console.error('Supabase Error:', error); return []; } if (!data) return [];
   return data;
 }
 
@@ -232,7 +238,7 @@ export async function searchProducts(query: string): Promise<Product[]> {
     )
     .order("created_at", { ascending: false });
 
-  if (error || !data) return [];
+  if (error) { console.error('Supabase Error:', error); return []; } if (!data) return [];
   return (data as unknown as SupabaseProduct[]).map(mapToProduct);
 }
 
@@ -253,12 +259,16 @@ export async function getRelatedProducts(productId: string, categorySlug: string
 
   // If we don't have enough, fetch other active products
   if (related.length < limit) {
-    const { data: otherData } = await supabaseBrowserClient
+    const { data: otherData, error: otherError } = await supabaseBrowserClient
       .from("products")
       .select(PRODUCT_SELECT)
       .eq("active", true)
       .neq("id", productId)
       .limit(limit * 2); // fetch extra to ensure we have enough after filtering
+
+    if (otherError) {
+      console.error("getRelatedProducts otherData Error:", otherError);
+    }
 
     if (otherData) {
       const otherProducts = (otherData as unknown as SupabaseProduct[]).map(mapToProduct);

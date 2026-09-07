@@ -20,7 +20,7 @@ export const products: Product[] = [
     materials: ["Soft pipe cleaners", "Metal keyring"],
     careInstructions: "Keep away from moisture. Fluff gently if flattened.",
     personalizationAvailable: false,
-    createdAt: "2023-10-01T00:00:00Z",
+    offer_enabled: false, offer_end_at: null, createdAt: "2023-10-01T00:00:00Z",
   },
   {
     id: "prod-002",
@@ -40,7 +40,7 @@ export const products: Product[] = [
     materials: ["Pipe cleaners", "Floral tape", "Ribbon"],
     careInstructions: "Keep away from direct sunlight to avoid fading.",
     personalizationAvailable: true,
-    createdAt: "2023-10-15T00:00:00Z",
+    offer_enabled: false, offer_end_at: null, createdAt: "2023-10-15T00:00:00Z",
   },
   {
     id: "prod-003",
@@ -60,7 +60,7 @@ export const products: Product[] = [
     materials: ["Plush fabric", "Metal snap clip"],
     careInstructions: "Spot clean only.",
     personalizationAvailable: false,
-    createdAt: "2023-09-20T00:00:00Z",
+    offer_enabled: false, offer_end_at: null, createdAt: "2023-09-20T00:00:00Z",
   },
   {
     id: "prod-004",
@@ -80,7 +80,7 @@ export const products: Product[] = [
     materials: ["Resin", "Gold-plated jump ring"],
     careInstructions: "Avoid contact with harsh chemicals.",
     personalizationAvailable: true,
-    createdAt: "2023-11-01T00:00:00Z",
+    offer_enabled: false, offer_end_at: null, createdAt: "2023-11-01T00:00:00Z",
   },
   {
     id: "prod-005",
@@ -101,7 +101,7 @@ export const products: Product[] = [
     materials: ["Cotton yarn", "Craft wire"],
     careInstructions: "Dust gently with a dry brush.",
     personalizationAvailable: true,
-    createdAt: "2023-11-10T00:00:00Z",
+    offer_enabled: false, offer_end_at: null, createdAt: "2023-11-10T00:00:00Z",
   },
   {
     id: "prod-006",
@@ -121,7 +121,7 @@ export const products: Product[] = [
     materials: ["Polymer clay", "Keyring"],
     careInstructions: "Keep dry.",
     personalizationAvailable: false,
-    createdAt: "2023-11-15T00:00:00Z",
+    offer_enabled: false, offer_end_at: null, createdAt: "2023-11-15T00:00:00Z",
   },
   {
     id: "prod-007",
@@ -141,7 +141,7 @@ export const products: Product[] = [
     materials: ["Chenille wire", "Lobster clasp"],
     careInstructions: "Do not crush or submerge.",
     personalizationAvailable: false,
-    createdAt: "2023-12-01T00:00:00Z",
+    offer_enabled: false, offer_end_at: null, createdAt: "2023-12-01T00:00:00Z",
   },
   {
     id: "prod-008",
@@ -162,6 +162,6 @@ export const products: Product[] = [
     materials: ["Handcrafted items", "Kraft gift box", "Satin ribbon"],
     careInstructions: "Ready to gift upon delivery.",
     personalizationAvailable: true,
-    createdAt: "2023-12-05T00:00:00Z",
+    offer_enabled: false, offer_end_at: null, createdAt: "2023-12-05T00:00:00Z",
   },
 ];

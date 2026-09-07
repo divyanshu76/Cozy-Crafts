@@ -10,8 +10,10 @@ export function OfferTimer({ offerEndAt }: { offerEndAt: string }) {
     seconds: 0,
   });
   const [isExpired, setIsExpired] = React.useState(false);
+  const [mounted, setMounted] = React.useState(false);
 
   React.useEffect(() => {
+    setMounted(true);
     const end = new Date(offerEndAt).getTime();
     
     const interval = setInterval(() => {
@@ -36,7 +38,7 @@ export function OfferTimer({ offerEndAt }: { offerEndAt: string }) {
     return () => clearInterval(interval);
   }, [offerEndAt]);
 
-  if (isExpired) return null;
+  if (!mounted || isExpired) return null;
 
   return (
     <div className="flex items-center gap-3 bg-red-50 text-red-700 px-4 py-2.5 rounded-lg border border-red-100 mb-6">

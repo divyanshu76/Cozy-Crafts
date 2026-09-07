@@ -14,7 +14,10 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
   const { data: product } = await supabase
     .from("products")
     .select(`
-      *,
+      id, name, slug, description, short_description, price, compare_at_price, category_id,
+      sku, materials, care_instructions, personalization_available,
+      is_featured, is_new, is_best_seller, active, tags, rating, review_count, 
+      offer_enabled, offer_end_at, created_at, updated_at,
       product_images ( url, position ),
       product_variants ( id, label ),
       inventory ( stock, variant_id )
@@ -51,8 +54,8 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
     isNew: product.is_new,
     isBestSeller: product.is_best_seller,
     isActive: product.active,
-    offerEnabled: product.offer_enabled,
-    offerEndAt: product.offer_end_at,
+    offerEnabled: (product as any).offer_enabled || false,
+    offerEndAt: (product as any).offer_end_at || null,
     sku: product.sku || "",
     stock: baseStock,
     colors,

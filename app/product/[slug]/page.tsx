@@ -164,8 +164,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
               </div>
             )}
             
-            {product.offerEnabled && product.offerEndAt && (
-              <OfferTimer offerEndAt={product.offerEndAt} />
+            {product.offer_enabled && product.offer_end_at && (
+              <OfferTimer offerEndAt={product.offer_end_at} />
             )}
 
             <p className="text-espresso-soft text-lg mb-8 leading-relaxed">

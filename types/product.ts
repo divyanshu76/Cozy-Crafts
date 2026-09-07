@@ -24,8 +24,8 @@ export interface Product {
   isBestSeller: boolean;
   rating: number; // 0-5, derived from reviews
   reviewCount: number;
-  offerEnabled?: boolean;
-  offerEndAt?: string;
+  offer_enabled: boolean;
+  offer_end_at: string | null;
   materials: string[];
   features?: string[];
   careInstructions: string;
