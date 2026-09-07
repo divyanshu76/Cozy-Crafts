@@ -174,7 +174,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const shippingFee = subtotal - discount >= 499 ? 0 : 49;
+    const shippingFee = 0; // Shipping is always free
     const codFee = paymentMethod === "COD" ? 0 : 0; // Configurable COD fee. Currently ₹0
     const total = Math.max(subtotal - discount + shippingFee + codFee, 0);
 

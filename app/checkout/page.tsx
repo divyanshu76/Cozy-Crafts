@@ -111,7 +111,7 @@ export default function CheckoutPage() {
     (sum, item) => sum + item.price * item.quantity,
     0
   );
-  const clientShipping = clientSubtotal >= 499 ? 0 : 49;
+  const clientShipping = 0; // Shipping is always free
   const clientCodFee = paymentMethod === "COD" ? 0 : 0; // Configurable COD fee
   const clientTotal = clientSubtotal + clientShipping + clientCodFee;
 
@@ -664,14 +664,6 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
-              {pricing.shippingFee > 0 && (
-                <div className="mb-6 flex items-center justify-center gap-2 text-xs text-espresso-soft bg-cream-soft rounded-lg p-3">
-                  <Truck className="h-4 w-4 text-sage shrink-0" />
-                  <span>
-                    Add ₹{(499 - pricing.subtotal + pricing.discount).toLocaleString("en-IN")} more for free shipping
-                  </span>
-                </div>
-              )}
 
               <Button
                 type="submit"

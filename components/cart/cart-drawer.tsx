@@ -19,9 +19,8 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
     (sum, item) => sum + item.price * item.quantity,
     0
   );
-  const isFreeShipping = subtotal >= 499;
-  const shippingAmount = isFreeShipping ? 0 : 49;
-  const progressPercent = Math.min((subtotal / 499) * 100, 100);
+  // Shipping is always free — no threshold logic needed
+  const shippingAmount = 0;
 
   return (
     <Drawer isOpen={isOpen} onClose={onClose} title="Your Cart" side="right" className="w-[90vw] sm:w-[450px]">
@@ -35,20 +34,6 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
           </div>
         ) : (
           <>
-            {/* Free Shipping Progress */}
-            <div className="p-4 bg-sage/10 border-b border-sage/20">
-              <p className="text-sm text-espresso text-center mb-2 font-medium">
-                {isFreeShipping
-                  ? "You've unlocked free shipping! 🎉"
-                  : `Add ₹${(499 - subtotal).toFixed(0)} more for free shipping`}
-              </p>
-              <div className="w-full bg-white h-2 rounded-full overflow-hidden">
-                <div
-                  className="bg-sage h-full transition-all duration-500 ease-out"
-                  style={{ width: `${progressPercent}%` }}
-                />
-              </div>
-            </div>
 
             {/* Cart Items */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-cream">
@@ -124,11 +109,11 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                 </div>
                 <div className="flex justify-between text-sm text-espresso-soft">
                   <span>Shipping</span>
-                  <span>{isFreeShipping ? "Free" : `₹${shippingAmount}`}</span>
+                  <span>Free</span>
                 </div>
                 <div className="flex justify-between text-base font-semibold text-espresso pt-2 border-t border-taupe/10 mt-2">
                   <span>Total</span>
-                  <span>₹{(subtotal + shippingAmount).toLocaleString("en-IN")}</span>
+                  <span>₹{subtotal.toLocaleString("en-IN")}</span>
                 </div>
               </div>
               <p className="text-xs text-taupe text-center mb-4">
