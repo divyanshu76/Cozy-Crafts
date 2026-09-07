@@ -230,3 +230,41 @@ export async function searchProducts(query: string): Promise<Product[]> {
   if (error || !data) return [];
   return (data as unknown as SupabaseProduct[]).map(mapToProduct);
 }
+
+export async function getRelatedProducts(productId: string, categorySlug: string, limit: number = 4): Promise<Product[]> {
+  // First, try to get products in the same category
+  const { data: categoryData, error: categoryError } = await supabaseBrowserClient
+    .from("products")
+    .select(PRODUCT_SELECT)
+    .eq("active", true)
+    .eq("categories.slug", categorySlug)
+    .neq("id", productId)
+    .limit(limit);
+
+  let related = categoryData ? (categoryData as unknown as SupabaseProduct[]).map(mapToProduct) : [];
+  
+  // Filter out any where categories.slug didn't actually match (because Supabase join behavior)
+  related = related.filter(p => p.category === categorySlug);
+
+  // If we don't have enough, fetch other active products
+  if (related.length < limit) {
+    const { data: otherData } = await supabaseBrowserClient
+      .from("products")
+      .select(PRODUCT_SELECT)
+      .eq("active", true)
+      .neq("id", productId)
+      .limit(limit * 2); // fetch extra to ensure we have enough after filtering
+
+    if (otherData) {
+      const otherProducts = (otherData as unknown as SupabaseProduct[]).map(mapToProduct);
+      for (const op of otherProducts) {
+        if (related.length >= limit) break;
+        if (!related.find(r => r.id === op.id)) {
+          related.push(op);
+        }
+      }
+    }
+  }
+
+  return related;
+}

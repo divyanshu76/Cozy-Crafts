@@ -1,51 +1,71 @@
-import { getProductBySlug } from "@/lib/products"
+import { getProductBySlug, getReviewsForProduct, getRelatedProducts, getCategoryTitle } from "@/lib/products"
 import { notFound } from "next/navigation"
 import { ProductGallery } from "@/components/products/product-gallery"
 import { AddToCart } from "@/components/products/add-to-cart"
 import { Accordion } from "@/components/ui/accordion"
 import { StarRating } from "@/components/ui/star-rating"
 import { TrustSection } from "@/components/sections/trust-section"
+import { ProductReviews } from "@/components/products/product-reviews"
+import { RelatedProducts } from "@/components/products/related-products"
+import Link from "next/link"
+import { ChevronRight } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 
 interface ProductPageProps {
-  params: {
+  params: Promise<{
     slug: string;
-  }
+  }>
 }
 
 export async function generateMetadata({ params }: ProductPageProps) {
-  const product = await getProductBySlug(params.slug);
+  const resolvedParams = await params;
+  const product = await getProductBySlug(resolvedParams.slug);
+  
   if (!product) return { title: "Product Not Found | Cozy Craft" };
 
   return {
     title: `${product.name} | Cozy Craft`,
-    description: product.description,
+    description: product.shortDescription || product.description,
+    openGraph: {
+      images: product.images?.[0] ? [product.images[0]] : [],
+    }
   };
 }
 
 export default async function ProductPage({ params }: ProductPageProps) {
-  const product = await getProductBySlug(params.slug);
+  const resolvedParams = await params;
+  const product = await getProductBySlug(resolvedParams.slug);
   
   if (!product) {
     notFound();
   }
 
+  const [reviews, relatedProducts] = await Promise.all([
+    getReviewsForProduct(product.id),
+    getRelatedProducts(product.id, product.category)
+  ]);
+
   const accordionItems = [
     {
       id: "description",
       title: "Description",
-      content: <p>{product.description}</p>
+      content: <div className="whitespace-pre-line text-espresso-soft leading-relaxed">{product.description}</div>
     },
     {
       id: "details",
       title: "Materials & Care",
       content: (
-        <ul className="list-disc pl-4 space-y-1">
-          {product.features?.map((f, i) => <li key={i}>{f}</li>) || (
+        <ul className="list-disc pl-4 space-y-1 text-espresso-soft">
+          {product.materials && product.materials.length > 0 ? (
+            product.materials.map((m, i) => <li key={i}>{m}</li>)
+          ) : (
             <>
               <li>Handmade with premium materials</li>
               <li>Handle with care to ensure longevity</li>
-              <li>Keep away from water and direct sunlight</li>
             </>
+          )}
+          {product.careInstructions && (
+            <li className="mt-2 text-espresso font-medium">{product.careInstructions}</li>
           )}
         </ul>
       )
@@ -54,9 +74,9 @@ export default async function ProductPage({ params }: ProductPageProps) {
       id: "shipping",
       title: "Shipping & Returns",
       content: (
-        <div className="space-y-2">
+        <div className="space-y-2 text-espresso-soft">
           <p>Orders are typically processed within 2-3 business days.</p>
-          <p>Standard delivery takes 4-7 business days across India.</p>
+          <p>Standard delivery takes 4-7 business days.</p>
           <p>Returns are accepted within 7 days for unused items in original packaging.</p>
         </div>
       )
@@ -67,7 +87,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
     "@context": "https://schema.org",
     "@type": "Product",
     name: product.name,
-    description: product.description,
+    description: product.shortDescription || product.description,
     image: product.images,
     offers: {
       "@type": "Offer",
@@ -84,29 +104,58 @@ export default async function ProductPage({ params }: ProductPageProps) {
     } : {}),
   };
 
+  const hasDiscount = product.compareAtPrice && product.compareAtPrice > product.price;
+  const discountPercent = hasDiscount
+    ? Math.round(((product.compareAtPrice! - product.price) / product.compareAtPrice!) * 100)
+    : 0;
+
   return (
     <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
       />
-      <div className="container mx-auto px-4 md:px-6 py-8 md:py-16 border-b border-taupe/20">
-        {/* Breadcrumb could go here */}
+      <div className="container mx-auto px-4 md:px-6 py-6 md:py-12">
+        {/* Breadcrumb */}
+        <nav className="flex items-center text-sm text-taupe mb-8 overflow-x-auto whitespace-nowrap hide-scrollbar">
+          <Link href="/" className="hover:text-espresso transition-colors">Home</Link>
+          <ChevronRight size={14} className="mx-2" />
+          <Link href="/shop" className="hover:text-espresso transition-colors">Shop</Link>
+          {product.category && (
+            <>
+              <ChevronRight size={14} className="mx-2" />
+              <Link href={`/shop/${product.category}`} className="hover:text-espresso transition-colors capitalize">
+                {getCategoryTitle(product.category)}
+              </Link>
+            </>
+          )}
+          <ChevronRight size={14} className="mx-2" />
+          <span className="text-espresso font-medium truncate">{product.name}</span>
+        </nav>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 lg:gap-16">
           {/* Left: Gallery */}
-          <div>
+          <div className="w-full">
             <ProductGallery images={product.images} productName={product.name} />
           </div>
 
           {/* Right: Info */}
           <div className="flex flex-col">
-            <h1 className="font-serif text-3xl md:text-4xl text-espresso mb-2">{product.name}</h1>
+            {/* Badges */}
+            <div className="flex flex-wrap gap-2 mb-4">
+              {product.isNew && !hasDiscount && <Badge variant="outline" className="bg-cream-soft text-espresso border-taupe/30">New Arrival</Badge>}
+              {product.isBestSeller && <Badge variant="outline" className="bg-sage/10 text-sage border-sage/20">Best Seller</Badge>}
+              {hasDiscount && <Badge className="bg-sage text-white border-transparent">Save {discountPercent}%</Badge>}
+            </div>
+
+            <h1 className="font-serif text-3xl md:text-4xl text-espresso mb-3 leading-tight">{product.name}</h1>
             
             {product.reviewCount > 0 && (
               <div className="flex items-center gap-2 mb-6">
                 <StarRating rating={product.rating} />
-                <span className="text-sm text-espresso-soft underline cursor-pointer">{product.reviewCount} reviews</span>
+                <a href="#reviews" className="text-sm text-espresso-soft hover:text-espresso transition-colors">
+                  {product.reviewCount} {product.reviewCount === 1 ? 'review' : 'reviews'}
+                </a>
               </div>
             )}
             
@@ -116,14 +165,22 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
             <AddToCart product={product} />
 
-            <div className="mt-12">
+            <div className="mt-12 border-t border-taupe/20 pt-8">
               <Accordion items={accordionItems} />
             </div>
           </div>
         </div>
+
+        {/* Full Details Section */}
+        <div id="reviews">
+          <ProductReviews productId={product.id} reviews={reviews} />
+        </div>
+
+        {/* Related Products */}
+        <RelatedProducts products={relatedProducts} />
+        
       </div>
       
-      {/* Product specifics sections could go here (e.g. cross-sell) */}
       <TrustSection />
     </>
   )
