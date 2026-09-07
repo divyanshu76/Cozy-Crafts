@@ -156,22 +156,27 @@ export default async function ProductPage({ params }: ProductPageProps) {
             <h1 className="font-serif text-3xl md:text-4xl text-espresso mb-3 leading-tight">{product.name}</h1>
             
             {product.reviewCount > 0 && (
-              <div className="flex items-center gap-2 mb-6">
+              <div className="flex items-center gap-2 mb-4">
                 <StarRating rating={product.rating} />
                 <a href="#reviews" className="text-sm text-espresso-soft hover:text-espresso transition-colors">
                   {product.reviewCount} {product.reviewCount === 1 ? 'review' : 'reviews'}
                 </a>
               </div>
             )}
-            
+
+            {/* Short description — shown before price for conversion */}
+            {(product.shortDescription || product.description) && (
+              <p className="text-espresso-soft text-base mb-6 leading-relaxed">
+                {product.shortDescription || product.description}
+              </p>
+            )}
+
+            {/* Offer timer — shown before the CTA block */}
             {product.offer_enabled && product.offer_end_at && (
               <OfferTimer offerEndAt={product.offer_end_at} />
             )}
 
-            <p className="text-espresso-soft text-lg mb-8 leading-relaxed">
-              {product.shortDescription || product.description}
-            </p>
-
+            {/* Price + variants + quantity + CTA buttons */}
             <AddToCart product={product} />
 
             <div className="mt-12 border-t border-taupe/20 pt-8">

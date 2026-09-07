@@ -27,6 +27,8 @@ const checkoutSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  const tag = "[checkout/create-order]";
+
   // ── 1. Validate body ──────────────────────────────────────────────────────
   const body = await req.json().catch(() => null);
   if (!body) {
@@ -35,6 +37,7 @@ export async function POST(req: NextRequest) {
 
   const parsed = checkoutSchema.safeParse(body);
   if (!parsed.success) {
+    console.error(tag, "Validation failed:", parsed.error.flatten());
     return NextResponse.json(
       { error: "Invalid request", details: parsed.error.flatten() },
       { status: 400 }
@@ -51,11 +54,12 @@ export async function POST(req: NextRequest) {
     .select("id, name, price, active, images:product_images(url, position)")
     .in("id", productIds);
 
-  if (productsError || !products || products.length !== productIds.length) {
-    return NextResponse.json(
-      { error: "One or more products could not be found" },
-      { status: 400 }
-    );
+  if (productsError) {
+    console.error(tag, "step=product_fetch", { code: productsError.code, message: productsError.message });
+    return NextResponse.json({ error: "Could not verify products. Please try again." }, { status: 500 });
+  }
+  if (!products || products.length !== productIds.length) {
+    return NextResponse.json({ error: "One or more products could not be found" }, { status: 400 });
   }
 
   // ── 3. Check stock and build order items ──────────────────────────────────
@@ -100,11 +104,16 @@ export async function POST(req: NextRequest) {
       invQuery = invQuery.is("variant_id", null);
     }
 
-    const { data: inv } = await invQuery.maybeSingle();
+    const { data: inv, error: invError } = await invQuery.maybeSingle();
+
+    if (invError) {
+      console.error(tag, "step=inventory_fetch", { productId: item.productId, code: invError.code, message: invError.message });
+      // If no inventory row exists at all, treat as out of stock
+    }
 
     if (!inv || inv.stock < item.quantity) {
       return NextResponse.json(
-        { error: `${product.name} is out of stock` },
+        { error: `${product.name} is out of stock or has insufficient quantity` },
         { status: 409 }
       );
     }
@@ -154,6 +163,7 @@ export async function POST(req: NextRequest) {
   const total = Math.max(subtotal - discount + shippingFee + codFee, 0);
 
   // ── 5. Upsert customer record ─────────────────────────────────────────────
+  let customerId: string | null = null;
   const { data: customer, error: customerError } = await supabase
     .from("customers")
     .insert({
@@ -161,18 +171,20 @@ export async function POST(req: NextRequest) {
       phone: address.phone,
       full_name: address.fullName,
     })
-    .select()
+    .select("id")
     .single();
 
   if (customerError) {
-    console.error("Customer insertion failed:", customerError);
-    // Continue anyway without linking a customer if we can't create one.
+    // Log but don't fail — customer linkage is nice-to-have, not required
+    console.error(tag, "step=customer_insert", { code: customerError.code, message: customerError.message });
+  } else {
+    customerId = customer.id;
   }
 
   // ── 6. Generate order number (atomic via DB function) ─────────────────────
   const { data: orderNumberRow, error: rpcError } = await supabase.rpc("next_order_number");
   if (rpcError || !orderNumberRow) {
-    console.error("Order number generation failed:", rpcError);
+    console.error(tag, "step=order_number_rpc", { code: rpcError?.code, message: rpcError?.message });
     return NextResponse.json(
       { error: "Could not generate order number. Please try again." },
       { status: 500 }
@@ -185,7 +197,7 @@ export async function POST(req: NextRequest) {
     .from("orders")
     .insert({
       public_order_number: publicOrderNumber,
-      customer_id: customer?.id ?? null,
+      customer_id: customerId,
       subtotal,
       discount,
       shipping_fee: shippingFee,
@@ -198,36 +210,49 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (orderError || !order) {
-    console.error("Order creation failed:", orderError);
+    console.error(tag, "step=order_insert", { code: orderError?.code, message: orderError?.message, details: orderError?.details });
     return NextResponse.json(
       { error: "Could not create order. Please try again." },
       { status: 500 }
     );
   }
 
-  await supabase
+  // ── 8. Insert order items ─────────────────────────────────────────────────
+  const { error: itemsError } = await supabase
     .from("order_items")
     .insert(orderItems.map((oi) => ({ ...oi, order_id: order.id })));
 
+  if (itemsError) {
+    console.error(tag, "step=order_items_insert", { code: itemsError.code, message: itemsError.message });
+    // Order exists but items failed — mark as failed to prevent silent orphan
+    await supabase.from("orders").update({ status: "PAYMENT_FAILED" }).eq("id", order.id);
+    return NextResponse.json({ error: "Could not save order items. Please try again." }, { status: 500 });
+  }
+
   // ── 9. Handle COD Branch ──────────────────────────────────────────────────
   if (paymentMethod === "COD") {
-    // For COD, the payment is pending until delivery. 
-    // We do NOT create a Razorpay order.
-    // However, we still need a row in the payments table or we can just rely on orders.payment_status.
-    // Existing schema might expect a payment row. If so, we could insert a dummy one, or better yet, just leave it to the orders table.
-    
-    // Trigger order confirmation email logic manually because there is no Razorpay webhook for COD.
-    // Usually webhooks do this, but for COD we must trigger it here.
-    // We will call sendOrderEmail or insert an email_log row.
-    await supabase.from("email_log").insert({
+    // For COD: mark order as CONFIRMED immediately (payment on delivery)
+    const { error: statusError } = await supabase
+      .from("orders")
+      .update({ status: "CONFIRMED" })
+      .eq("id", order.id);
+
+    if (statusError) {
+      console.error(tag, "step=cod_status_update", { code: statusError.code, message: statusError.message });
+      // Don't fail — order is created, status update is secondary
+    }
+
+    // Queue confirmation email
+    const { error: emailError } = await supabase.from("email_log").insert({
       order_id: order.id,
       trigger: "ORDER_CONFIRMED",
-      status: "pending"
+      status: "pending",
     });
-    
-    // In production, you might fire a background job here. The cron will pick up the pending email log anyway,
-    // but typically you'd trigger it directly or rely on the cron. We'll let the cron or direct call handle it.
-    
+    if (emailError) {
+      // Log but don't fail — email is a notification, not core
+      console.error(tag, "step=email_log_insert", { code: emailError.code, message: emailError.message });
+    }
+
     return NextResponse.json({
       orderId: order.id,
       publicOrderNumber: order.public_order_number,
@@ -241,9 +266,6 @@ export async function POST(req: NextRequest) {
   }
 
   // ── 10. Create Razorpay order (Online Payment) ────────────────────────────
-  // NOTE: steps 5-10 are not wrapped in a single Postgres transaction.
-  // If the Razorpay call below fails, the order row will be orphaned.
-  // TODO (launch hardening): wrap steps 5-10 in a Postgres function called via supabase.rpc().
   let razorpayOrder: { id: string; amount: number; currency: string };
   try {
     const razorpay = getRazorpayClient();
@@ -253,7 +275,7 @@ export async function POST(req: NextRequest) {
       receipt: order.public_order_number,
     }) as { id: string; amount: number; currency: string };
   } catch (err) {
-    console.error("Razorpay order creation failed:", err);
+    console.error(tag, "step=razorpay_order_create", err);
     // Mark the order as failed so it's not silently orphaned
     await supabase
       .from("orders")
@@ -266,11 +288,15 @@ export async function POST(req: NextRequest) {
   }
 
   // ── 11. Record pending payment ────────────────────────────────────────────
-  await supabase.from("payments").insert({
+  const { error: paymentError } = await supabase.from("payments").insert({
     order_id: order.id,
     razorpay_order_id: razorpayOrder.id,
     amount: total,
   });
+  if (paymentError) {
+    console.error(tag, "step=payment_insert", { code: paymentError.code, message: paymentError.message });
+    // Payment row insert failure is non-fatal at this point — Razorpay webhook will reconcile
+  }
 
   return NextResponse.json({
     orderId: order.id,
@@ -287,4 +313,3 @@ export async function POST(req: NextRequest) {
     paymentMethod,
   });
 }
-

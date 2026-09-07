@@ -54,7 +54,17 @@ export function AddToCart({ product }: AddToCartProps) {
 
   const handleBuyNow = () => {
     if (maxStock === 0) return;
-    handleAdd();
+    // Add to cart the same way handleAdd does, then go to checkout
+    addItem({ 
+      productId: product.id, 
+      quantity,
+      variantId: selectedVariant,
+      variantLabel: variant?.label,
+      name: product.name,
+      price: variant?.priceOverride ?? product.price,
+      image: product.images?.[0],
+      slug: product.slug,
+    });
     router.push("/checkout");
   };
 

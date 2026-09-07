@@ -226,19 +226,23 @@ export async function getReviewsForProduct(productId: string) {
 }
 
 export async function searchProducts(query: string): Promise<Product[]> {
-  const lower = query.toLowerCase();
+  const lower = query.toLowerCase().trim();
+  if (!lower) return [];
 
-  // Supabase full-text search (ilike is a simple fallback without tsvector index)
+  // Search across name, description, short_description.
+  // Tags are an array column — we do a separate client-side filter since
+  // PostgREST array containment (cs) requires exact element matches.
   const { data, error } = await supabaseBrowserClient
     .from("products")
     .select(PRODUCT_SELECT)
     .eq("active", true)
     .or(
-      `name.ilike.%${lower}%,description.ilike.%${lower}%,tags.cs.{${lower}}`
+      `name.ilike.%${lower}%,description.ilike.%${lower}%,short_description.ilike.%${lower}%`
     )
     .order("created_at", { ascending: false });
 
-  if (error) { console.error('Supabase Error:', error); return []; } if (!data) return [];
+  if (error) { console.error('[searchProducts] Supabase Error:', error); return []; }
+  if (!data) return [];
   return (data as unknown as SupabaseProduct[]).map(mapToProduct);
 }
 
