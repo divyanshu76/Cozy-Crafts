@@ -172,7 +172,11 @@ export default function CheckoutPage() {
       const createData = await createRes.json();
 
       if (!createRes.ok) {
-        setError(createData.error ?? "Something went wrong. Please try again.");
+        setError(
+          createData.details
+            ? `${createData.error} (${createData.details})`
+            : createData.error ?? "Something went wrong. Please try again."
+        );
         setIsProcessing(false);
         return;
       }
@@ -198,6 +202,12 @@ export default function CheckoutPage() {
       }
 
       // ── 3. Open Razorpay Checkout modal ──────────────────────────────────
+      if (typeof window === "undefined" || !window.Razorpay) {
+        setError("Payment gateway is still loading. Please wait a moment and try again.");
+        setIsProcessing(false);
+        return;
+      }
+
       const rzp = new window.Razorpay({
         key: createData.keyId,
         amount: createData.amount, // already in paise
@@ -258,7 +268,7 @@ export default function CheckoutPage() {
     <>
       <Script
         src="https://checkout.razorpay.com/v1/checkout.js"
-        strategy="lazyOnload"
+        strategy="afterInteractive"
       />
 
       {/* Background Watermark */}

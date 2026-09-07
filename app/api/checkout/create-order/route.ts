@@ -267,22 +267,42 @@ export async function POST(req: NextRequest) {
 
   // ── 10. Create Razorpay order (Online Payment) ────────────────────────────
   let razorpayOrder: { id: string; amount: number; currency: string };
+  const keyId = (
+    process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ||
+    process.env.RAZORPAY_KEY_ID
+  )?.trim();
+
   try {
     const razorpay = getRazorpayClient();
-    razorpayOrder = await razorpay.orders.create({
+    razorpayOrder = (await razorpay.orders.create({
       amount: Math.round(total * 100), // paise
       currency: "INR",
       receipt: order.public_order_number,
-    }) as { id: string; amount: number; currency: string };
-  } catch (err) {
-    console.error(tag, "step=razorpay_order_create", err);
+    })) as { id: string; amount: number; currency: string };
+  } catch (err: any) {
+    const safeReason =
+      err?.error?.description ||
+      err?.error?.code ||
+      err?.message ||
+      "Payment gateway initialization failed";
+
+    console.error(tag, "step=razorpay_order_create", {
+      reason: safeReason,
+      statusCode: err?.statusCode,
+      rawError: err,
+    });
+
     // Mark the order as failed so it's not silently orphaned
     await supabase
       .from("orders")
       .update({ status: "PAYMENT_FAILED" })
       .eq("id", order.id);
+
     return NextResponse.json(
-      { error: "Payment gateway error. Please try again." },
+      {
+        error: "Payment gateway error. Please try again.",
+        details: safeReason,
+      },
       { status: 502 }
     );
   }
@@ -304,7 +324,7 @@ export async function POST(req: NextRequest) {
     razorpayOrderId: razorpayOrder.id,
     amount: razorpayOrder.amount,
     currency: razorpayOrder.currency,
-    keyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+    keyId: keyId || null,
     subtotal,
     discount,
     shippingFee,
