@@ -10,6 +10,17 @@ import {
 import { sendOrderEmail } from "@/lib/notifications/send-order-email";
 
 export async function createShipmentAction(orderId: string) {
+  // ── Preflight: verify Shiprocket credentials are configured ──────────────
+  const missingVars: string[] = [];
+  if (!process.env.SHIPROCKET_EMAIL) missingVars.push("SHIPROCKET_EMAIL");
+  if (!process.env.SHIPROCKET_PASSWORD) missingVars.push("SHIPROCKET_PASSWORD");
+  if (missingVars.length > 0) {
+    return {
+      success: false,
+      error: `Shiprocket credentials not configured. Add ${missingVars.join(" and ")} to your Vercel environment variables, then redeploy. Also ensure a pickup location named "Primary" exists in Shiprocket Settings → Pickups.`,
+    };
+  }
+
   const supabase = getSupabaseServerClient();
   try {
     const { data: order } = await supabase
@@ -56,11 +67,13 @@ export async function createShipmentAction(orderId: string) {
 
     await sendOrderEmail(orderId, "ORDER_PACKED");
     return { success: true };
-  } catch (err) {
+  } catch (err: any) {
     console.error("Shipment creation failed", err);
+    // Surface the actual Shiprocket error message (e.g. auth failure, invalid pickup location)
+    const detail = err?.message ?? "Unknown error";
     return { 
       success: false, 
-      error: "Could not create shipment. Try again, or check Shiprocket panel status." 
+      error: `Shiprocket error: ${detail}`,
     };
   }
 }

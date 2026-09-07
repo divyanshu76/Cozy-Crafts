@@ -5,17 +5,15 @@ import { createServerClient } from "@supabase/ssr";
 import { revalidatePath } from "next/cache";
 import { ArrowLeft, Package, Truck, FileText } from "lucide-react";
 import Link from "next/link";
+import { CreateShipmentButton } from "./CreateShipmentButton";
 
+// Valid order_status enum values as of migration 0002
 const ALL_STATUSES = [
   "PENDING_PAYMENT",
   "PAYMENT_FAILED",
   "PAID",
   "CONFIRMED",
   "PROCESSING",
-  "PACKED",
-  "SHIPPED",
-  "OUT_FOR_DELIVERY",
-  "DELIVERED",
   "CANCELLED",
   "REFUNDED",
 ];
@@ -276,24 +274,7 @@ export default async function OrderDetailPage({
                   )}
                 </>
               ) : (
-                <div className="pt-3 border-t border-taupe/10">
-                  <p className="text-xs text-espresso-soft mb-3">
-                    No shipment created yet.
-                  </p>
-                  <form action={async () => {
-                    "use server";
-                    const { createShipmentAction } = await import("./actions");
-                    await createShipmentAction(order.id);
-                  }}>
-                    <button 
-                      type="submit" 
-                      disabled={order.status !== "PAID" && order.status !== "CONFIRMED"}
-                      className="w-full text-sm bg-sage text-white px-4 py-2 rounded-lg hover:bg-sage/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      Create Shipment
-                    </button>
-                  </form>
-                </div>
+                <CreateShipmentButton orderId={order.id} orderStatus={order.status} />
               )}
             </div>
           </div>
