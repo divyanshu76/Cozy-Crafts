@@ -328,8 +328,14 @@ export default async function OrderDetailPage({
           {/* Split Status 3: Payment (Read-only) */}
           <div className="bg-white rounded-xl border border-taupe/20 shadow-sm p-5">
             <h2 className="font-semibold text-espresso mb-3">Payment</h2>
-            <div className="space-y-2 text-sm">
+            <div className="space-y-3 text-sm">
               <div className="flex justify-between items-center">
+                <span className="text-espresso-soft">Method</span>
+                <span className="font-medium px-2 py-1 bg-amber-100 text-amber-700 rounded border border-amber-200">
+                  {order.payment_method || "PREPAID"}
+                </span>
+              </div>
+              <div className="flex justify-between items-center pb-2 border-b border-taupe/10">
                 <span className="text-espresso-soft">Status</span>
                 <span className="font-medium px-2 py-1 bg-cream-soft rounded border border-taupe/10">
                   {order.payment_status}

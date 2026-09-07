@@ -32,6 +32,25 @@ export function OrderConfirmedEmail({ order }: { order: OrderForEmail }) {
         shopping handmade with Cozy Craft. We&apos;ll start preparing your items right away.
       </Text>
 
+      <Section
+        style={{
+          backgroundColor: "#FAF6EF",
+          border: "1px solid #EAE2D6",
+          borderRadius: 8,
+          padding: "16px",
+          marginBottom: 20,
+        }}
+      >
+        <Text style={{ margin: "0 0 8px", fontSize: 14, color: "#6B5648" }}>
+          <strong>Payment Method:</strong>{" "}
+          {order.paymentMethod === "COD" ? "Cash on Delivery" : "Online Payment"}
+        </Text>
+        <Text style={{ margin: 0, fontSize: 14, color: "#6B5648" }}>
+          <strong>Payment Status:</strong>{" "}
+          {order.paymentMethod === "COD" ? "Payable on delivery" : "Paid"}
+        </Text>
+      </Section>
+
       {/* Order items */}
       <Section
         style={{
@@ -63,6 +82,20 @@ export function OrderConfirmedEmail({ order }: { order: OrderForEmail }) {
             </Column>
           </Row>
         )}
+        <Row style={{ marginBottom: 4 }}>
+          <Column style={{ fontSize: 13, color: "#6B5648" }}>Shipping</Column>
+          <Column align="right" style={{ fontSize: 13, color: "#6B5648" }}>
+            {order.shippingFee === 0 ? "FREE" : `₹${order.shippingFee.toLocaleString("en-IN")}`}
+          </Column>
+        </Row>
+        {order.paymentMethod === "COD" && order.codFee && order.codFee > 0 ? (
+          <Row style={{ marginBottom: 4 }}>
+            <Column style={{ fontSize: 13, color: "#6B5648" }}>COD Fee</Column>
+            <Column align="right" style={{ fontSize: 13, color: "#6B5648" }}>
+              ₹{order.codFee.toLocaleString("en-IN")}
+            </Column>
+          </Row>
+        ) : null}
         <Row>
           <Column style={{ fontSize: 14, fontWeight: 700, color: "#3E2C22" }}>
             Total

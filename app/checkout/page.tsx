@@ -2,6 +2,7 @@
 import * as React from "react";
 import Link from "next/link";
 import Script from "next/script";
+import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -9,7 +10,7 @@ import { useCartStore } from "@/hooks/useCartStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
-import { ShoppingBag, Package, Truck, Tag, AlertCircle } from "lucide-react";
+import { ShoppingBag, Package, Truck, Tag, AlertCircle, Check, Lock, CreditCard, Banknote } from "lucide-react";
 
 // ── Form schema ──────────────────────────────────────────────────────────────
 const checkoutFormSchema = z.object({
@@ -23,6 +24,7 @@ const checkoutFormSchema = z.object({
   state: z.string().min(2, "State is required"),
   pinCode: z.string().regex(/^\d{6}$/, "Enter a valid 6-digit PIN code"),
   couponCode: z.string().optional(),
+  paymentMethod: z.enum(["RAZORPAY", "CARD", "COD"]),
 });
 
 type CheckoutFormValues = z.infer<typeof checkoutFormSchema>;
@@ -86,8 +88,23 @@ export default function CheckoutPage() {
     subtotal: number;
     discount: number;
     shippingFee: number;
+    codFee?: number;
     total: number;
   } | null>(null);
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm<CheckoutFormValues>({
+    resolver: zodResolver(checkoutFormSchema),
+    defaultValues: {
+      paymentMethod: "RAZORPAY",
+    },
+  });
+
+  const paymentMethod = watch("paymentMethod");
 
   // Optimistic client-side pricing (shown before server responds)
   const clientSubtotal = items.reduce(
@@ -95,22 +112,16 @@ export default function CheckoutPage() {
     0
   );
   const clientShipping = clientSubtotal >= 499 ? 0 : 49;
-  const clientTotal = clientSubtotal + clientShipping;
+  const clientCodFee = paymentMethod === "COD" ? 0 : 0; // Configurable COD fee
+  const clientTotal = clientSubtotal + clientShipping + clientCodFee;
 
   const pricing = serverPricing ?? {
     subtotal: clientSubtotal,
     discount: 0,
     shippingFee: clientShipping,
+    codFee: clientCodFee,
     total: clientTotal,
   };
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<CheckoutFormValues>({
-    resolver: zodResolver(checkoutFormSchema),
-  });
 
   if (items.length === 0 && !isProcessing) {
     return (
@@ -145,6 +156,7 @@ export default function CheckoutPage() {
             quantity: item.quantity,
           })),
           couponCode: formData.couponCode || undefined,
+          paymentMethod: formData.paymentMethod,
           address: {
             fullName: formData.fullName,
             phone: formData.phone,
@@ -170,10 +182,22 @@ export default function CheckoutPage() {
         subtotal: createData.subtotal,
         discount: createData.discount,
         shippingFee: createData.shippingFee,
+        codFee: createData.codFee,
         total: createData.total,
       });
 
-      // ── 2. Open Razorpay Checkout modal ──────────────────────────────────
+      // ── 2. Handle COD Order ──────────────────────────────────────────────
+      if (createData.paymentMethod === "COD") {
+        clearCart();
+        router.push(
+          `/checkout/confirmation?orderNumber=${encodeURIComponent(
+            createData.publicOrderNumber
+          )}&paymentMethod=COD`
+        );
+        return; // Done
+      }
+
+      // ── 3. Open Razorpay Checkout modal ──────────────────────────────────
       const rzp = new window.Razorpay({
         key: createData.keyId,
         amount: createData.amount, // already in paise
@@ -188,7 +212,7 @@ export default function CheckoutPage() {
         },
         theme: { color: "#7C9A7E" }, // --color-sage
         handler: async (response) => {
-          // ── 3. Verify payment server-side ──────────────────────────────
+          // ── 4. Verify payment server-side ──────────────────────────────
           const verifyRes = await fetch("/api/checkout/verify", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -204,7 +228,7 @@ export default function CheckoutPage() {
             router.push(
               `/checkout/confirmation?orderNumber=${encodeURIComponent(
                 createData.publicOrderNumber
-              )}`
+              )}&paymentMethod=${formData.paymentMethod}`
             );
           } else {
             setError(
@@ -237,13 +261,22 @@ export default function CheckoutPage() {
         strategy="lazyOnload"
       />
 
-      <div className="container mx-auto px-4 md:px-6 py-8 md:py-12 max-w-6xl">
-        <h1 className="font-serif text-3xl md:text-4xl text-espresso mb-2">
-          Checkout
-        </h1>
-        <p className="text-espresso-soft mb-8 text-sm">
-          {items.length} {items.length === 1 ? "item" : "items"} in your cart
-        </p>
+      {/* Background Watermark */}
+      <div className="fixed inset-0 pointer-events-none z-[-1] flex items-center justify-center overflow-hidden">
+        <div className="relative w-[120vw] h-[120vh] md:w-[800px] md:h-[800px] opacity-[0.03]">
+          <Image src="/assets/logo.png" alt="" fill className="object-contain" priority />
+        </div>
+      </div>
+
+      <div className="container mx-auto px-4 md:px-6 py-8 md:py-12 max-w-6xl relative z-10">
+        <div className="mb-8 md:mb-12 text-center md:text-left">
+          <h1 className="font-serif text-3xl md:text-4xl text-espresso mb-2">
+            Checkout
+          </h1>
+          <p className="text-espresso-soft flex items-center justify-center md:justify-start gap-2">
+            Complete your order securely <Lock className="w-3 h-3" />
+          </p>
+        </div>
 
         {error && (
           <div className="mb-6 flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl p-4 text-red-700">
@@ -252,19 +285,22 @@ export default function CheckoutPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
           {/* ── Form ────────────────────────────────────────────────────── */}
-          <div className="lg:col-span-7 xl:col-span-8">
+          <div className="lg:col-span-7">
             <form
               id="checkout-form"
               onSubmit={handleSubmit(onSubmit)}
-              className="space-y-6"
+              className="space-y-6 md:space-y-8"
             >
               {/* Contact */}
-              <section className="bg-cream-soft p-6 rounded-xl border border-taupe/20">
+              <section className="bg-white/80 backdrop-blur-md p-6 rounded-2xl shadow-sm border border-taupe/20">
                 <h2 className="text-xl font-serif text-espresso mb-4">
                   Contact Information
                 </h2>
+                <p className="text-sm text-espresso-soft mb-4">
+                  We&apos;ll send your order confirmation and tracking updates to this email.
+                </p>
                 <div className="space-y-4">
                   <div>
                     <Input
@@ -272,6 +308,7 @@ export default function CheckoutPage() {
                       type="email"
                       placeholder="Email address"
                       {...register("email")}
+                      className="bg-white"
                     />
                     {errors.email && (
                       <p className="mt-1 text-xs text-red-600">
@@ -285,6 +322,7 @@ export default function CheckoutPage() {
                       type="tel"
                       placeholder="Mobile number (10 digits)"
                       {...register("phone")}
+                      className="bg-white"
                     />
                     {errors.phone && (
                       <p className="mt-1 text-xs text-red-600">
@@ -296,7 +334,7 @@ export default function CheckoutPage() {
               </section>
 
               {/* Shipping */}
-              <section className="bg-cream-soft p-6 rounded-xl border border-taupe/20">
+              <section className="bg-white/80 backdrop-blur-md p-6 rounded-2xl shadow-sm border border-taupe/20">
                 <h2 className="text-xl font-serif text-espresso mb-4">
                   Shipping Address
                 </h2>
@@ -307,6 +345,7 @@ export default function CheckoutPage() {
                       type="text"
                       placeholder="Full name"
                       {...register("fullName")}
+                      className="bg-white"
                     />
                     {errors.fullName && (
                       <p className="mt-1 text-xs text-red-600">
@@ -320,6 +359,7 @@ export default function CheckoutPage() {
                       type="text"
                       placeholder="Address (house/flat, street, area)"
                       {...register("addressLine")}
+                      className="bg-white"
                     />
                     {errors.addressLine && (
                       <p className="mt-1 text-xs text-red-600">
@@ -333,6 +373,7 @@ export default function CheckoutPage() {
                       type="text"
                       placeholder="City"
                       {...register("city")}
+                      className="bg-white"
                     />
                     {errors.city && (
                       <p className="mt-1 text-xs text-red-600">
@@ -346,6 +387,7 @@ export default function CheckoutPage() {
                       type="text"
                       placeholder="State"
                       {...register("state")}
+                      className="bg-white"
                     />
                     {errors.state && (
                       <p className="mt-1 text-xs text-red-600">
@@ -360,6 +402,7 @@ export default function CheckoutPage() {
                       placeholder="PIN code"
                       maxLength={6}
                       {...register("pinCode")}
+                      className="bg-white"
                     />
                     {errors.pinCode && (
                       <p className="mt-1 text-xs text-red-600">
@@ -371,7 +414,7 @@ export default function CheckoutPage() {
               </section>
 
               {/* Coupon */}
-              <section className="bg-cream-soft p-6 rounded-xl border border-taupe/20">
+              <section className="bg-white/80 backdrop-blur-md p-6 rounded-2xl shadow-sm border border-taupe/20">
                 <h2 className="text-xl font-serif text-espresso mb-4 flex items-center gap-2">
                   <Tag className="h-5 w-5 text-sage" />
                   Coupon Code
@@ -381,67 +424,166 @@ export default function CheckoutPage() {
                   type="text"
                   placeholder="Enter coupon code (optional)"
                   {...register("couponCode")}
-                  className="uppercase"
+                  className="uppercase bg-white"
                 />
                 <p className="mt-2 text-xs text-espresso-soft">
                   Discount will be applied when you place the order.
                 </p>
               </section>
 
-              {/* Payment method note */}
-              <section className="bg-cream-soft p-6 rounded-xl border border-taupe/20">
-                <h2 className="text-xl font-serif text-espresso mb-3">
-                  Payment
+              {/* Payment Method */}
+              <section className="bg-white/80 backdrop-blur-md p-6 rounded-2xl shadow-sm border border-taupe/20">
+                <h2 className="text-xl font-serif text-espresso mb-4">
+                  Payment Method
                 </h2>
-                <div className="flex items-center gap-3 p-4 border border-sage/40 rounded-lg bg-sage/5">
-                  <div className="w-3 h-3 rounded-full bg-sage" />
-                  <span className="font-medium text-espresso">
-                    Pay Online via Razorpay
-                  </span>
-                  <span className="ml-auto text-xs text-espresso-soft">
-                    UPI · Cards · Netbanking · Wallets
-                  </span>
+                <p className="text-sm text-espresso-soft mb-4">
+                  Choose how you&apos;d like to pay.
+                </p>
+                <div className="space-y-3">
+                  {/* Razorpay */}
+                  <label
+                    className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-colors ${
+                      paymentMethod === "RAZORPAY"
+                        ? "border-sage bg-sage/5"
+                        : "border-taupe/20 hover:border-sage/50"
+                    }`}
+                  >
+                    <div className="flex items-center h-5 mt-0.5">
+                      <input
+                        type="radio"
+                        value="RAZORPAY"
+                        {...register("paymentMethod")}
+                        className="w-4 h-4 text-sage focus:ring-sage"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <span className="block font-medium text-espresso flex items-center gap-2">
+                        Pay Online via Razorpay
+                      </span>
+                      <span className="block text-sm text-espresso-soft mt-1">
+                        UPI, Netbanking, Wallets & more
+                      </span>
+                    </div>
+                  </label>
+
+                  {/* Card */}
+                  <label
+                    className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-colors ${
+                      paymentMethod === "CARD"
+                        ? "border-sage bg-sage/5"
+                        : "border-taupe/20 hover:border-sage/50"
+                    }`}
+                  >
+                    <div className="flex items-center h-5 mt-0.5">
+                      <input
+                        type="radio"
+                        value="CARD"
+                        {...register("paymentMethod")}
+                        className="w-4 h-4 text-sage focus:ring-sage"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <span className="block font-medium text-espresso flex items-center gap-2">
+                        <CreditCard className="w-4 h-4 text-taupe" />
+                        Credit / Debit Card
+                      </span>
+                      <span className="block text-sm text-espresso-soft mt-1">
+                        Pay securely using your card via Razorpay.
+                      </span>
+                    </div>
+                  </label>
+
+                  {/* COD */}
+                  <label
+                    className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-colors ${
+                      paymentMethod === "COD"
+                        ? "border-sage bg-sage/5"
+                        : "border-taupe/20 hover:border-sage/50"
+                    }`}
+                  >
+                    <div className="flex items-center h-5 mt-0.5">
+                      <input
+                        type="radio"
+                        value="COD"
+                        {...register("paymentMethod")}
+                        className="w-4 h-4 text-sage focus:ring-sage"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <span className="block font-medium text-espresso flex items-center gap-2">
+                        <Banknote className="w-4 h-4 text-taupe" />
+                        Cash on Delivery (COD)
+                      </span>
+                      <span className="block text-sm text-espresso-soft mt-1">
+                        Pay with cash when your order is delivered.
+                      </span>
+                    </div>
+                  </label>
                 </div>
+              </section>
+
+              {/* Trust Section */}
+              <section className="bg-cream p-6 rounded-2xl shadow-sm border border-taupe/20">
+                <h3 className="font-serif text-espresso text-lg mb-3 flex items-center gap-2">
+                  Making Someone&apos;s Day Brighter 💚
+                </h3>
+                <p className="text-sm text-espresso-soft mb-5 leading-relaxed">
+                  Every order supports our mission of creating handmade, sustainable and meaningful products. Thank you for being part of the Cozy Craft family.
+                </p>
+                <ul className="text-sm text-espresso-soft space-y-3">
+                  <li className="flex items-center gap-3">
+                    <Check className="w-4 h-4 text-sage" /> 100% Handmade
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <Check className="w-4 h-4 text-sage" /> Eco-friendly Materials
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <Check className="w-4 h-4 text-sage" /> Supporting Local Artisans
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <Check className="w-4 h-4 text-sage" /> Packed With Love
+                  </li>
+                </ul>
               </section>
             </form>
           </div>
 
           {/* ── Order Summary ────────────────────────────────────────────── */}
-          <div className="lg:col-span-5 xl:col-span-4">
-            <div className="bg-cream p-6 rounded-xl border border-taupe/20 sticky top-24">
-              <h2 className="text-xl font-serif text-espresso mb-4">
+          <div className="lg:col-span-5">
+            <div className="bg-white/90 backdrop-blur-md p-6 lg:p-8 rounded-2xl shadow-sm border border-taupe/20 sticky top-24">
+              <h2 className="text-xl font-serif text-espresso mb-6">
                 Order Summary
               </h2>
 
               {/* Items list */}
-              <div className="space-y-3 mb-4 max-h-48 overflow-y-auto pr-1">
+              <div className="space-y-4 mb-6 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
                 {items.map((item) => (
                   <div
                     key={`${item.productId}-${item.variantId ?? ""}`}
-                    className="flex items-start gap-3"
+                    className="flex items-start gap-4"
                   >
-                    <div className="w-12 h-12 rounded-lg bg-cream-soft border border-taupe/20 shrink-0 overflow-hidden">
+                    <div className="w-16 h-16 rounded-xl bg-cream-soft border border-taupe/20 shrink-0 overflow-hidden relative">
                       {item.image && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
+                        <Image
                           src={item.image}
                           alt={item.name}
-                          className="w-full h-full object-cover"
+                          fill
+                          className="object-cover"
                         />
                       )}
                     </div>
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 pt-1">
                       <p className="text-sm font-medium text-espresso truncate">
                         {item.name}
                       </p>
                       {item.variantLabel && (
-                        <p className="text-xs text-taupe">{item.variantLabel}</p>
+                        <p className="text-xs text-taupe mt-0.5">{item.variantLabel}</p>
                       )}
-                      <p className="text-xs text-espresso-soft">
+                      <p className="text-xs text-espresso-soft mt-1">
                         Qty: {item.quantity}
                       </p>
                     </div>
-                    <p className="text-sm font-medium text-espresso shrink-0">
+                    <p className="text-sm font-medium text-espresso shrink-0 pt-1">
                       ₹{(item.price * item.quantity).toLocaleString("en-IN")}
                     </p>
                   </div>
@@ -449,7 +591,7 @@ export default function CheckoutPage() {
               </div>
 
               {/* Pricing breakdown */}
-              <div className="border-t border-taupe/20 pt-4 space-y-2 mb-4">
+              <div className="border-t border-taupe/20 pt-6 space-y-3 mb-6">
                 <SummaryRow
                   label="Subtotal"
                   value={`₹${pricing.subtotal.toLocaleString("en-IN")}`}
@@ -474,20 +616,28 @@ export default function CheckoutPage() {
                   }
                   accent={pricing.shippingFee === 0}
                 />
+                {paymentMethod === "COD" && pricing.codFee !== undefined && pricing.codFee > 0 && (
+                  <SummaryRow
+                    label="COD Fee"
+                    value={`₹${pricing.codFee.toLocaleString("en-IN")}`}
+                  />
+                )}
               </div>
 
-              <div className="border-t border-taupe/20 pt-4 mb-6">
-                <div className="flex justify-between items-center">
+              <div className="border-t border-taupe/20 pt-6 mb-8">
+                <div className="flex justify-between items-end">
                   <span className="text-lg font-bold text-espresso">Total</span>
-                  <span className="text-lg font-bold text-espresso">
-                    ₹{pricing.total.toLocaleString("en-IN")}
-                  </span>
+                  <div className="text-right">
+                    <span className="text-2xl font-serif text-espresso block">
+                      ₹{pricing.total.toLocaleString("en-IN")}
+                    </span>
+                    <span className="text-xs text-taupe mt-1 block">Including all taxes</span>
+                  </div>
                 </div>
-                <p className="text-xs text-taupe mt-1">Including all taxes</p>
               </div>
 
               {pricing.shippingFee > 0 && (
-                <div className="mb-4 flex items-center gap-2 text-xs text-espresso-soft bg-cream-soft rounded-lg p-3">
+                <div className="mb-6 flex items-center justify-center gap-2 text-xs text-espresso-soft bg-cream-soft rounded-lg p-3">
                   <Truck className="h-4 w-4 text-sage shrink-0" />
                   <span>
                     Add ₹{(499 - pricing.subtotal + pricing.discount).toLocaleString("en-IN")} more for free shipping
@@ -498,7 +648,7 @@ export default function CheckoutPage() {
               <Button
                 type="submit"
                 form="checkout-form"
-                className="w-full h-14 text-lg"
+                className="w-full h-14 text-lg rounded-xl shadow-md transition-transform active:scale-[0.98]"
                 disabled={isProcessing}
               >
                 {isProcessing ? (
@@ -507,13 +657,18 @@ export default function CheckoutPage() {
                     Processing…
                   </span>
                 ) : (
-                  `Pay ₹${pricing.total.toLocaleString("en-IN")}`
+                  paymentMethod === "COD" ? `Place COD Order — ₹${pricing.total.toLocaleString("en-IN")}` : `Pay ₹${pricing.total.toLocaleString("en-IN")} Securely`
                 )}
               </Button>
 
-              <p className="text-xs text-center text-taupe mt-4">
-                🔒 Secure checkout via Razorpay
-              </p>
+              <div className="flex justify-center items-center gap-6 mt-6">
+                 <div className="flex items-center gap-1.5 text-xs text-taupe">
+                   <Lock className="w-3.5 h-3.5" /> Secure
+                 </div>
+                 <div className="flex items-center gap-1.5 text-xs text-taupe">
+                   <Truck className="w-3.5 h-3.5" /> Fast Delivery
+                 </div>
+              </div>
             </div>
           </div>
         </div>

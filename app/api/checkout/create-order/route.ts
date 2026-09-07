@@ -23,6 +23,7 @@ const checkoutSchema = z.object({
     state: z.string().min(2),
     pinCode: z.string().regex(/^\d{6}$/, "PIN code must be 6 digits"),
   }),
+  paymentMethod: z.enum(["RAZORPAY", "CARD", "COD"]).default("RAZORPAY"),
 });
 
 export async function POST(req: NextRequest) {
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { items, address, couponCode } = parsed.data;
+  const { items, address, couponCode, paymentMethod } = parsed.data;
   const supabase = getSupabaseServerClient();
 
   // ── 2. Re-fetch real product data (never trust client prices) ─────────────
@@ -149,7 +150,8 @@ export async function POST(req: NextRequest) {
   }
 
   const shippingFee = subtotal - discount >= 499 ? 0 : 49;
-  const total = Math.max(subtotal - discount + shippingFee, 0);
+  const codFee = paymentMethod === "COD" ? 0 : 0; // Configurable COD fee. Currently ₹0
+  const total = Math.max(subtotal - discount + shippingFee + codFee, 0);
 
   // ── 5. Upsert customer record ─────────────────────────────────────────────
   const { data: customer } = await supabase
@@ -177,6 +179,8 @@ export async function POST(req: NextRequest) {
       shipping_fee: shippingFee,
       total,
       shipping_address_snapshot: address,
+      payment_method: paymentMethod,
+      cod_fee: codFee,
     })
     .select()
     .single();
@@ -189,15 +193,45 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // ── 8. Insert order items ─────────────────────────────────────────────────
   await supabase
     .from("order_items")
     .insert(orderItems.map((oi) => ({ ...oi, order_id: order.id })));
 
-  // ── 9. Create Razorpay order ──────────────────────────────────────────────
-  // NOTE: steps 5-9 are not wrapped in a single Postgres transaction.
+  // ── 9. Handle COD Branch ──────────────────────────────────────────────────
+  if (paymentMethod === "COD") {
+    // For COD, the payment is pending until delivery. 
+    // We do NOT create a Razorpay order.
+    // However, we still need a row in the payments table or we can just rely on orders.payment_status.
+    // Existing schema might expect a payment row. If so, we could insert a dummy one, or better yet, just leave it to the orders table.
+    
+    // Trigger order confirmation email logic manually because there is no Razorpay webhook for COD.
+    // Usually webhooks do this, but for COD we must trigger it here.
+    // We will call sendOrderEmail or insert an email_log row.
+    await supabase.from("email_log").insert({
+      order_id: order.id,
+      trigger: "ORDER_CONFIRMED",
+      status: "pending"
+    });
+    
+    // In production, you might fire a background job here. The cron will pick up the pending email log anyway,
+    // but typically you'd trigger it directly or rely on the cron. We'll let the cron or direct call handle it.
+    
+    return NextResponse.json({
+      orderId: order.id,
+      publicOrderNumber: order.public_order_number,
+      subtotal,
+      discount,
+      shippingFee,
+      codFee,
+      total,
+      paymentMethod,
+    });
+  }
+
+  // ── 10. Create Razorpay order (Online Payment) ────────────────────────────
+  // NOTE: steps 5-10 are not wrapped in a single Postgres transaction.
   // If the Razorpay call below fails, the order row will be orphaned.
-  // TODO (launch hardening): wrap steps 5-9 in a Postgres function called via supabase.rpc().
+  // TODO (launch hardening): wrap steps 5-10 in a Postgres function called via supabase.rpc().
   let razorpayOrder: { id: string; amount: number; currency: string };
   try {
     const razorpay = getRazorpayClient();
@@ -219,7 +253,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // ── 10. Record pending payment ────────────────────────────────────────────
+  // ── 11. Record pending payment ────────────────────────────────────────────
   await supabase.from("payments").insert({
     order_id: order.id,
     razorpay_order_id: razorpayOrder.id,
@@ -236,6 +270,9 @@ export async function POST(req: NextRequest) {
     subtotal,
     discount,
     shippingFee,
+    codFee,
     total,
+    paymentMethod,
   });
 }
+

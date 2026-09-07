@@ -1,10 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { useEffect, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Flower2, KeyRound, Gift, Heart, Mail, Phone, MapPin } from "lucide-react";
@@ -273,6 +274,35 @@ const MarqueeItem = () => (
 // 4. MAIN CINEMATIC FOOTER COMPONENT
 // -------------------------------------------------------------------------
 export function CinematicFooter() {
+  const [email, setEmail] = useState("");
+  const router = useRouter();
+  
+  // Hidden Admin Shortcut state
+  const [tapCount, setTapCount] = useState(0);
+  const [lastTap, setLastTap] = useState(0);
+
+  const handleAdminShortcut = (e: React.MouseEvent | React.TouchEvent) => {
+    // Prevent accidentally highlighting text if user taps repeatedly
+    if (e.type === 'mousedown' && e.detail > 1) {
+      e.preventDefault();
+    }
+
+    const now = Date.now();
+    
+    if (now - lastTap > 2000) {
+      // Reset if more than 2 seconds since last tap
+      setTapCount(1);
+    } else {
+      const newCount = tapCount + 1;
+      setTapCount(newCount);
+      if (newCount >= 5) {
+        setTapCount(0); // Reset immediately
+        router.push("/admin/login");
+      }
+    }
+    setLastTap(now);
+  };
+
   const footerRef = useRef<HTMLElement>(null);
   const giantTextRef = useRef<HTMLDivElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -445,8 +475,12 @@ export function CinematicFooter() {
 
           {/* "Made with Love" Badge - Visually Centered */}
           <div className="flex justify-center">
-            <div className="footer-glass-pill px-5 sm:px-6 py-2.5 rounded-full flex items-center gap-2 cursor-default border-[var(--color-taupe)]/40">
-              <span className="text-[var(--color-espresso-soft)] text-[10px] md:text-xs font-bold uppercase tracking-widest">Handcrafted with</span>
+            <div 
+              className="footer-glass-pill px-5 sm:px-6 py-2.5 rounded-full flex items-center gap-2 cursor-default border-[var(--color-taupe)]/40 select-none"
+              onMouseDown={handleAdminShortcut}
+              onTouchStart={handleAdminShortcut}
+            >
+              <span className="text-[var(--color-espresso-soft)] text-[10px] md:text-xs font-bold uppercase tracking-widest pointer-events-none">Handcrafted with</span>
               <Heart className="h-4 w-4 text-[var(--color-destructive)] fill-[var(--color-destructive)] animate-footer-heartbeat" strokeWidth={1.5} />
               <span className="text-[var(--color-espresso-soft)] text-[10px] md:text-xs font-bold uppercase tracking-widest">by</span>
               <span className="text-[var(--color-espresso)] font-black text-xs md:text-sm tracking-normal ml-1">Cozy Craft</span>

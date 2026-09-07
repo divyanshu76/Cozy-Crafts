@@ -15,6 +15,8 @@ export interface OrderForEmail {
   estimatedDeliveryDate?: string | null;
   cancellationReason?: string | null;
   refundAmount?: number | null;
+  paymentMethod?: string;
+  codFee?: number;
   items: {
     id: string;
     productName: string;

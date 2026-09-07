@@ -41,6 +41,8 @@ export async function sendOrderEmail(orderId: string, trigger: EmailTrigger) {
       awbNumber: order.awb_number,
       courierName: order.courier_name,
       estimatedDeliveryDate: order.estimated_delivery_date,
+      paymentMethod: order.payment_method,
+      codFee: Number(order.cod_fee ?? 0),
       items: order.order_items.map((item: any) => ({
         id: item.id,
         productName: item.product_name_snapshot,
