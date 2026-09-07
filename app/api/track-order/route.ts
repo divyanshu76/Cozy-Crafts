@@ -35,75 +35,83 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   }
 
-  const { orderNumber, contact } = parsed.data;
-  const supabase = getSupabaseServerClient();
+  try {
+    const { orderNumber, contact } = parsed.data;
+    const supabase = getSupabaseServerClient();
 
-  // ── Fetch order + customer ────────────────────────────────────────────────
-  const { data: order, error } = await supabase
-    .from("orders")
-    .select(`
-      id,
-      public_order_number,
-      status,
-      payment_status,
-      shipping_status,
-      awb_number,
-      courier_name,
-      estimated_delivery_date,
-      total,
-      created_at,
-      shipping_address_snapshot,
-      order_items(
-        product_name_snapshot,
-        product_image_snapshot,
-        quantity,
-        unit_price_snapshot
-      ),
-      order_status_history(
-        status_type,
-        new_value,
+    // ── Fetch order + customer ────────────────────────────────────────────────
+    const { data: order, error } = await supabase
+      .from("orders")
+      .select(`
+        id,
+        public_order_number,
+        status,
+        payment_status,
+        shipping_status,
+        awb_number,
+        courier_name,
+        estimated_delivery_date,
+        total,
         created_at,
-        source
-      )
-    `)
-    .eq("public_order_number", orderNumber)
-    .single();
+        shipping_address_snapshot,
+        order_items(
+          product_name_snapshot,
+          product_image_snapshot,
+          quantity,
+          unit_price_snapshot
+        ),
+        order_status_history(
+          status_type,
+          new_value,
+          created_at,
+          source
+        )
+      `)
+      .eq("public_order_number", orderNumber)
+      .single();
 
-  if (error || !order) {
+    if (error || !order) {
+      return NextResponse.json(
+        { error: "Order not found. Please check the number." },
+        { status: 404 }
+      );
+    }
+
+    // Verify contact info
+    const addr = order.shipping_address_snapshot as { phone: string; email: string };
+    if (addr.phone !== contact && addr.email !== contact) {
+      return NextResponse.json(
+        { error: "Contact information does not match the order." },
+        { status: 401 }
+      );
+    }
+
+    // Filter out internal system changes for the customer-facing timeline
+    // order by created_at asc
+    const timeline = (order.order_status_history as any[])
+      .filter((h) => h.source !== "admin_manual")
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+      .map((h) => ({
+        type: h.status_type,
+        status: h.new_value,
+        timestamp: h.created_at,
+      }));
+
+    return NextResponse.json({
+      orderNumber: order.public_order_number,
+      orderStatus: order.status,
+      paymentStatus: order.payment_status,
+      shippingStatus: order.shipping_status,
+      awbNumber: order.awb_number,
+      courierName: order.courier_name,
+      estimatedDeliveryDate: order.estimated_delivery_date,
+      total: order.total,
+    });
+  } catch (err: any) {
+    console.error("[track-order] server error:", err);
     return NextResponse.json(
-      { error: "Order not found. Please check the number." },
-      { status: 404 }
+      { error: "Server error retrieving order", details: err?.message },
+      { status: 500 }
     );
   }
-
-  // Verify contact info
-  const addr = order.shipping_address_snapshot as { phone: string; email: string };
-  if (addr.phone !== contact && addr.email !== contact) {
-    return NextResponse.json(
-      { error: "Contact information does not match the order." },
-      { status: 401 }
-    );
-  }
-
-  // Filter out internal system changes for the customer-facing timeline
-  // order by created_at asc
-  const timeline = (order.order_status_history as any[])
-    .filter((h) => h.source !== "admin_manual")
-    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
-    .map((h) => ({
-      type: h.status_type,
-      status: h.new_value,
-      timestamp: h.created_at,
-    }));
-
-  return NextResponse.json({
-    orderNumber: order.public_order_number,
-    orderStatus: order.status,
-    paymentStatus: order.payment_status,
-    shippingStatus: order.shipping_status,
-    awbNumber: order.awb_number,
-    courierName: order.courier_name,
-    estimatedDeliveryDate: order.estimated_delivery_date,
-    total: order.total,
-  });
 }

@@ -169,14 +169,28 @@ export default function CheckoutPage() {
         }),
       });
 
-      const createData = await createRes.json();
+      let createData: any = null;
+      const rawText = await createRes.text();
+      try {
+        createData = rawText ? JSON.parse(rawText) : null;
+      } catch {
+        // Response was not JSON (e.g. empty or HTML error page)
+      }
 
       if (!createRes.ok) {
-        setError(
-          createData.details
-            ? `${createData.error} (${createData.details})`
-            : createData.error ?? "Something went wrong. Please try again."
-        );
+        const errorMsg =
+          createData?.error
+            ? createData.details
+              ? `${createData.error} (${createData.details})`
+              : createData.error
+            : `Server returned error (${createRes.status} ${createRes.statusText || "Internal Error"}). Please check server configuration.`;
+        setError(errorMsg);
+        setIsProcessing(false);
+        return;
+      }
+
+      if (!createData) {
+        setError("Invalid response received from server. Please try again.");
         setIsProcessing(false);
         return;
       }
@@ -257,9 +271,13 @@ export default function CheckoutPage() {
       });
 
       rzp.open();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      setError("A network error occurred. Please try again.");
+      setError(
+        err?.message
+          ? `Error: ${err.message}`
+          : "A network error occurred. Please try again."
+      );
       setIsProcessing(false);
     }
   };
