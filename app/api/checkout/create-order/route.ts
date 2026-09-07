@@ -104,11 +104,26 @@ export async function POST(req: NextRequest) {
       invQuery = invQuery.is("variant_id", null);
     }
 
-    const { data: inv, error: invError } = await invQuery.maybeSingle();
+    let { data: inv, error: invError } = await invQuery.maybeSingle();
 
     if (invError) {
       console.error(tag, "step=inventory_fetch", { productId: item.productId, code: invError.code, message: invError.message });
-      // If no inventory row exists at all, treat as out of stock
+    }
+
+    // Fallback: if product only has inventory assigned to variants and no variant was specified
+    if (!inv && !item.variantId) {
+      const { data: fallbackInv } = await supabase
+        .from("inventory")
+        .select("stock, variant_id")
+        .eq("product_id", item.productId)
+        .order("stock", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (fallbackInv) {
+        inv = fallbackInv;
+        item.variantId = fallbackInv.variant_id ?? undefined;
+      }
     }
 
     if (!inv || inv.stock < item.quantity) {
