@@ -155,7 +155,7 @@ export default async function OrderDetailPage({
           href={invoiceUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-white text-espresso border border-taupe/30 rounded-lg hover:bg-cream transition-colors shadow-sm w-fit"
+          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-white text-espresso border border-taupe/30 rounded-lg hover:bg-cream transition-all shadow-sm w-fit active:scale-[0.98] active:translate-y-[1px]"
         >
           <FileText className="h-4 w-4 text-sage" />
           Download Invoice

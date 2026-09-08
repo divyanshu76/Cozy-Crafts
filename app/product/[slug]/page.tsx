@@ -192,7 +192,10 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
             {/* Offer timer — shown before the CTA block */}
             {product.offer_enabled && product.offer_end_at && (
-              <OfferTimer offerEndAt={product.offer_end_at} />
+              <OfferTimer 
+                offerEndAt={product.offer_end_at} 
+                discountAmount={hasDiscount ? (product.compareAtPrice! - product.price) : undefined}
+              />
             )}
 
             {/* Price + variants + quantity + CTA buttons */}

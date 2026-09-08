@@ -30,7 +30,7 @@ export function AdminNotesForm({
       <button
         type="submit"
         disabled={isPending}
-        className="mt-2 text-sm bg-sage text-white px-4 py-2 rounded-lg hover:bg-sage/80 transition-colors disabled:opacity-70 flex items-center gap-2"
+        className="mt-2 text-sm bg-sage text-white px-4 py-2 rounded-lg hover:bg-sage/80 transition-all disabled:opacity-70 flex items-center gap-2 active:scale-[0.98] active:translate-y-[1px]"
       >
         {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
         {isPending ? "Saving..." : "Save Notes"}

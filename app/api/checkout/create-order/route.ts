@@ -288,11 +288,9 @@ export async function POST(req: NextRequest) {
 
       // Send confirmation email via the idempotent sendOrderEmail() path.
       // This creates an email_log row (pending → sent/failed) and handles
-      // all retry logic. Fire without await so the HTTP response is not held
-      // hostage by the email provider, but errors are still caught and logged.
-      sendOrderEmail(order.id, "ORDER_CONFIRMED").catch((err) => {
-        console.error(tag, "step=cod_email_send", err);
-      });
+      // all retry logic. We await it to ensure the Vercel serverless function
+      // does not terminate before the email connection succeeds.
+      await sendOrderEmail(order.id, "ORDER_CONFIRMED");
 
       return NextResponse.json({
         orderId: order.id,

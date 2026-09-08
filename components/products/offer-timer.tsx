@@ -2,7 +2,7 @@
 import * as React from "react"
 import { Clock } from "lucide-react"
 
-export function OfferTimer({ offerEndAt }: { offerEndAt: string }) {
+export function OfferTimer({ offerEndAt, discountAmount }: { offerEndAt: string, discountAmount?: number }) {
   const [timeLeft, setTimeLeft] = React.useState({
     days: 0,
     hours: 0,
@@ -41,14 +41,26 @@ export function OfferTimer({ offerEndAt }: { offerEndAt: string }) {
   if (!mounted || isExpired) return null;
 
   return (
-    <div className="flex items-center gap-3 bg-red-50 text-red-700 px-4 py-2.5 rounded-lg border border-red-100 mb-6">
-      <Clock className="w-5 h-5 animate-pulse" />
-      <span className="font-medium text-sm tracking-wide">Limited Time Offer ends in:</span>
-      <div className="flex gap-1.5 font-mono text-sm font-bold">
-        {timeLeft.days > 0 && <span>{timeLeft.days}d</span>}
-        <span>{timeLeft.hours.toString().padStart(2, '0')}h</span>
-        <span>{timeLeft.minutes.toString().padStart(2, '0')}m</span>
-        <span>{timeLeft.seconds.toString().padStart(2, '0')}s</span>
+    <div className="flex flex-col gap-2 bg-[#FFF8F6] text-[#C44E3D] px-5 py-4 rounded-xl border border-[#FADCD9] mb-6 shadow-sm">
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-lg">🔥</span>
+        <span className="font-bold text-[13px] uppercase tracking-widest text-[#B53E2D]">Limited-Time Offer</span>
+      </div>
+      
+      {discountAmount && discountAmount > 0 && (
+        <div className="font-semibold text-lg text-[#3E2C22]">
+          Save ₹{discountAmount.toLocaleString("en-IN")}
+        </div>
+      )}
+      
+      <div className="flex flex-col gap-1 mt-1">
+        <span className="text-sm font-medium text-[#6B5648]">Sale ends in</span>
+        <div className="flex gap-2 font-mono text-lg font-bold text-[#3E2C22]">
+          {timeLeft.days > 0 && <span>{timeLeft.days}d</span>}
+          <span>{timeLeft.hours.toString().padStart(2, '0')}h</span>
+          <span>{timeLeft.minutes.toString().padStart(2, '0')}m</span>
+          <span>{timeLeft.seconds.toString().padStart(2, '0')}s</span>
+        </div>
       </div>
     </div>
   );
