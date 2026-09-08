@@ -3,7 +3,7 @@ import { Heading, Text, Button } from "@react-email/components";
 import { EmailLayout } from "./layout";
 import type { OrderForEmail } from "./types";
 
-const SITE = "https://cozycraft.example";
+const SITE = "https://www.cozycrafts.shop";
 
 export function OrderDeliveredEmail({ order }: { order: OrderForEmail }) {
   // If the order has only 1 unique item, link directly to it.

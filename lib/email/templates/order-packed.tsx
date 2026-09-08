@@ -3,7 +3,7 @@ import { Heading, Text, Button } from "@react-email/components";
 import { EmailLayout } from "./layout";
 import type { OrderForEmail } from "./types";
 
-const SITE = "https://cozycraft.example";
+const SITE = "https://www.cozycrafts.shop";
 
 export function OrderPackedEmail({ order }: { order: OrderForEmail }) {
   return (
@@ -29,7 +29,7 @@ export function OrderPackedEmail({ order }: { order: OrderForEmail }) {
       </Text>
 
       <Button
-        href={`${SITE}/track-order?order=${order.publicOrderNumber}`}
+        href={`${SITE}/track-order?order=${order.publicOrderNumber}${order.trackingToken ? `&token=${order.trackingToken}` : ""}`}
         style={{
           display: "block",
           background: "#3E2C22",

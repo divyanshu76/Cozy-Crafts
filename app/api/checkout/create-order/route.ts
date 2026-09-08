@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getRazorpayClient } from "@/lib/razorpay/client";
+import {
+  normalizeIndianPhone,
+  isValidIndianMobile,
+  normalizeEmail,
+} from "@/lib/contact-utils";
 
 const checkoutSchema = z.object({
   items: z
@@ -16,8 +21,18 @@ const checkoutSchema = z.object({
   couponCode: z.string().optional(),
   address: z.object({
     fullName: z.string().min(2),
-    phone: z.string().regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit Indian mobile number"),
-    email: z.string().email(),
+    phone: z
+      .string()
+      .transform((val) => normalizeIndianPhone(val) ?? val.trim())
+      .refine((val) => isValidIndianMobile(val), {
+        message: "Enter a valid 10-digit Indian mobile number",
+      }),
+    email: z
+      .string()
+      .transform((val) => val.trim().toLowerCase())
+      .refine((val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val), {
+        message: "Enter a valid email address",
+      }),
     addressLine: z.string().min(5),
     city: z.string().min(2),
     state: z.string().min(2),
@@ -178,14 +193,26 @@ export async function POST(req: NextRequest) {
     const codFee = paymentMethod === "COD" ? 0 : 0; // Configurable COD fee. Currently ₹0
     const total = Math.max(subtotal - discount + shippingFee + codFee, 0);
 
-    // ── 5. Upsert customer record ─────────────────────────────────────────────
+    // ── 5. Canonical contact details ─────────────────────────────────────────
+    const canonicalPhone = normalizeIndianPhone(address.phone) || address.phone.replace(/\D/g, "");
+    const canonicalEmail = address.email.trim().toLowerCase();
+    const canonicalFullName = address.fullName.trim();
+
+    const canonicalAddress = {
+      ...address,
+      fullName: canonicalFullName,
+      phone: canonicalPhone,
+      email: canonicalEmail,
+    };
+
+    // Upsert customer record with canonical values
     let customerId: string | null = null;
     const { data: customer, error: customerError } = await supabase
       .from("customers")
       .insert({
-        email: address.email,
-        phone: address.phone,
-        full_name: address.fullName,
+        email: canonicalEmail,
+        phone: canonicalPhone,
+        full_name: canonicalFullName,
       })
       .select("id")
       .single();
@@ -208,7 +235,7 @@ export async function POST(req: NextRequest) {
     }
     const publicOrderNumber = orderNumberRow as unknown as string;
 
-    // ── 7. Create order row ───────────────────────────────────────────────────
+    // ── 7. Create order row with canonical address snapshot ───────────────────
     const { data: order, error: orderError } = await supabase
       .from("orders")
       .insert({
@@ -218,7 +245,7 @@ export async function POST(req: NextRequest) {
         discount,
         shipping_fee: shippingFee,
         total,
-        shipping_address_snapshot: address,
+        shipping_address_snapshot: canonicalAddress,
         payment_method: paymentMethod,
         cod_fee: codFee,
       })

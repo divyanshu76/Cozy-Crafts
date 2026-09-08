@@ -11,14 +11,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
 import { ShoppingBag, Package, Truck, Tag, AlertCircle, Check, Lock, CreditCard, Banknote } from "lucide-react";
+import { normalizeIndianPhone, isValidIndianMobile } from "@/lib/contact-utils";
 
 // ── Form schema ──────────────────────────────────────────────────────────────
 const checkoutFormSchema = z.object({
   fullName: z.string().min(2, "Full name is required"),
-  email: z.string().email("Enter a valid email address"),
+  email: z.string().trim().email("Enter a valid email address"),
   phone: z
     .string()
-    .regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit Indian mobile number"),
+    .refine((val) => isValidIndianMobile(normalizeIndianPhone(val) || ""), {
+      message: "Enter a valid 10-digit Indian mobile number (e.g. 7376907289 or +91 7376907289)",
+    }),
   addressLine: z.string().min(5, "Address is required"),
   city: z.string().min(2, "City is required"),
   state: z.string().min(2, "State is required"),
@@ -158,13 +161,13 @@ export default function CheckoutPage() {
           couponCode: formData.couponCode || undefined,
           paymentMethod: formData.paymentMethod,
           address: {
-            fullName: formData.fullName,
-            phone: formData.phone,
-            email: formData.email,
-            addressLine: formData.addressLine,
-            city: formData.city,
-            state: formData.state,
-            pinCode: formData.pinCode,
+            fullName: formData.fullName.trim(),
+            phone: normalizeIndianPhone(formData.phone) || formData.phone.replace(/\D/g, ""),
+            email: formData.email.trim().toLowerCase(),
+            addressLine: formData.addressLine.trim(),
+            city: formData.city.trim(),
+            state: formData.state.trim(),
+            pinCode: formData.pinCode.trim(),
           },
         }),
       });

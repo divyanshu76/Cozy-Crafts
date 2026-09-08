@@ -11,6 +11,7 @@ import {
 } from "@react-email/components";
 import { EmailLayout } from "./layout";
 import type { OrderForEmail } from "./types";
+import { getPublicImageUrl } from "@/lib/email/images";
 
 const SITE = "https://www.cozycrafts.shop";
 
@@ -72,15 +73,38 @@ export function OrderConfirmedEmail({ order }: { order: OrderForEmail }) {
           marginBottom: 24,
         }}
       >
-        {order.items.map((item) => (
-          <Row key={item.id} style={{ marginBottom: 16 }}>
-            <Column style={{ width: "60px", paddingRight: "16px" }}>
-              {item.productImage ? (
-                <Img src={item.productImage} width="60" height="60" style={{ borderRadius: 8, objectFit: "cover" }} alt={item.productName} />
-              ) : (
-                <div style={{ width: 60, height: 60, backgroundColor: "#FAF6EF", borderRadius: 8 }} />
-              )}
-            </Column>
+        {order.items.map((item) => {
+          const publicImg = getPublicImageUrl(item.productImage);
+          return (
+            <Row key={item.id} style={{ marginBottom: 16 }}>
+              <Column style={{ width: "60px", paddingRight: "16px" }}>
+                {publicImg ? (
+                  <Img
+                    src={publicImg}
+                    width="60"
+                    height="60"
+                    style={{ borderRadius: 8, objectFit: "cover" }}
+                    alt={item.productName}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: 60,
+                      height: 60,
+                      backgroundColor: "#FAF6EF",
+                      borderRadius: 8,
+                      border: "1px solid #EAE2D6",
+                      textAlign: "center",
+                      lineHeight: "60px",
+                      color: "#7C9A7E",
+                      fontSize: 20,
+                      fontWeight: "bold",
+                    }}
+                  >
+                    {item.productName.charAt(0).toUpperCase()}
+                  </div>
+                )}
+              </Column>
             <Column style={{ fontSize: 14, color: "#3E2C22", verticalAlign: "middle" }}>
               <Text style={{ margin: "0 0 4px", fontWeight: 600 }}>{item.productName}</Text>
               <Text style={{ margin: 0, color: "#9BAA8C" }}>Qty: {item.quantity}</Text>
@@ -92,7 +116,8 @@ export function OrderConfirmedEmail({ order }: { order: OrderForEmail }) {
               ₹{item.lineTotal.toLocaleString("en-IN")}
             </Column>
           </Row>
-        ))}
+        );
+      })}
         
         <Hr style={{ borderColor: "#EAE2D6", margin: "16px 0" }} />
         

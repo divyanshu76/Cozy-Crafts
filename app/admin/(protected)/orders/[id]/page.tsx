@@ -7,6 +7,7 @@ import { ArrowLeft, Package, Truck, FileText } from "lucide-react";
 import Link from "next/link";
 import { CreateShipmentButton } from "./CreateShipmentButton";
 import { sendOrderEmail } from "@/lib/notifications/send-order-email";
+import { generateOrderToken } from "@/lib/crypto";
 
 // Valid order_status enum values as of migration 0002
 const ALL_STATUSES = [
@@ -132,18 +133,32 @@ export default async function OrderDetailPage({
   const updateStatusAction = updateOrderStatus.bind(null, order.id);
   const updateNotesAction = updateNotes.bind(null, order.id);
 
+  const invoiceToken = generateOrderToken(order.public_order_number);
+  const invoiceUrl = `/api/invoice?order=${order.public_order_number}&token=${invoiceToken}`;
+
   return (
     <div>
-      <div className="flex items-center gap-3 mb-6">
-        <Link href="/admin/orders" className="text-espresso-soft hover:text-espresso transition-colors">
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
-        <h1 className="font-serif text-3xl text-espresso flex items-center gap-3">
-          Order <span className="font-mono text-sage">{order.public_order_number}</span>
-          <span className="text-sm font-sans font-medium px-3 py-1 rounded-full bg-cream-soft border border-taupe/20">
-            {order.status}
-          </span>
-        </h1>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div className="flex items-center gap-3">
+          <Link href="/admin/orders" className="text-espresso-soft hover:text-espresso transition-colors">
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <h1 className="font-serif text-3xl text-espresso flex items-center gap-3">
+            Order <span className="font-mono text-sage">{order.public_order_number}</span>
+            <span className="text-sm font-sans font-medium px-3 py-1 rounded-full bg-cream-soft border border-taupe/20">
+              {order.status}
+            </span>
+          </h1>
+        </div>
+        <a
+          href={invoiceUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-white text-espresso border border-taupe/30 rounded-lg hover:bg-cream transition-colors shadow-sm w-fit"
+        >
+          <FileText className="h-4 w-4 text-sage" />
+          Download Invoice
+        </a>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">

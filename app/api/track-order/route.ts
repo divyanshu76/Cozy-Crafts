@@ -3,40 +3,33 @@ import { z } from "zod";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { verifyOrderToken } from "@/lib/crypto";
+import {
+  normalizeIndianPhone,
+  normalizeEmail,
+  normalizeContactLookup,
+} from "@/lib/contact-utils";
 
 const schema = z.object({
-  orderNumber: z.string().min(5),
+  orderNumber: z.string().min(3),
   contact: z.string().optional(), // email or phone, optional if token is provided
   token: z.string().optional(),
 });
 
-/**
- * Normalize an Indian phone number to bare 10-digit form.
- * Strips whitespace, +91, country code 91, and leading 0.
- * If it looks like an email (contains @), returns lowercased as-is.
- */
-const normalizeContact = (raw: string): string => {
-  if (!raw) return "";
-  const trimmed = raw.trim();
-  if (trimmed.includes("@")) return trimmed.toLowerCase();
-  const digits = trimmed.replace(/\D/g, "");
-  if (digits.length === 12 && digits.startsWith("91")) return digits.slice(2);
-  if (digits.length === 11 && digits.startsWith("0")) return digits.slice(1);
-  return digits.length >= 10 ? digits.slice(-10) : digits;
-};
+const NOT_FOUND_MESSAGE =
+  "We couldn't find this order. Please check your order number and the email or phone number used at checkout.";
 
 export async function POST(req: NextRequest) {
-  // ── Rate limiting: 5 attempts per IP per minute ───────────────────────────
+  // ── Rate limiting: 10 attempts per IP per minute ──────────────────────────
   const ip =
     req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
   const allowed = await checkRateLimit(`track-order:${ip}`, {
-    max: 10, // increased to allow token-based clicks
+    max: 10,
     windowSeconds: 60,
   });
 
   if (!allowed) {
     return NextResponse.json(
-      { error: "Too many attempts. Try again in a minute." },
+      { error: "Too many attempts. Please wait a moment before trying again." },
       { status: 429 }
     );
   }
@@ -49,20 +42,27 @@ export async function POST(req: NextRequest) {
 
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Please enter a valid order number and contact info." },
+      { status: 400 }
+    );
   }
 
   try {
     const { orderNumber, contact, token } = parsed.data;
-    
-    // Validate that either token OR contact is provided
-    if (!token && !contact) {
-      return NextResponse.json({ error: "Email/Phone or Secure Token is required." }, { status: 400 });
+
+    // Must have either token or contact
+    if (!token && (!contact || contact.trim().length === 0)) {
+      return NextResponse.json(
+        { error: "Please provide the email or phone number used at checkout." },
+        { status: 400 }
+      );
     }
 
+    const cleanOrderNumber = orderNumber.trim().toUpperCase();
     const supabase = getSupabaseServerClient();
 
-    // ── Fetch order + customer ────────────────────────────────────────────────
+    // ── Fetch order + customer + items ──────────────────────────────────────
     const { data: order, error } = await supabase
       .from("orders")
       .select(`
@@ -77,6 +77,8 @@ export async function POST(req: NextRequest) {
         total,
         created_at,
         shipping_address_snapshot,
+        customer_id,
+        customers(email, phone, full_name),
         order_items(
           product_name_snapshot,
           product_image_snapshot,
@@ -90,55 +92,99 @@ export async function POST(req: NextRequest) {
           source
         )
       `)
-      .eq("public_order_number", orderNumber)
-      .single();
+      .eq("public_order_number", cleanOrderNumber)
+      .maybeSingle();
 
     if (error || !order) {
       return NextResponse.json(
-        { error: "Order not found. Please check the number." },
+        { error: NOT_FOUND_MESSAGE },
         { status: 404 }
       );
     }
 
-    // Verify authorization: Token OR Contact Info
+    // ── Verify authorization: Token OR Contact Info ────────────────────────
     let isAuthorized = false;
 
+    // 1. Verify token if present
     if (token) {
-      if (verifyOrderToken(order.public_order_number, token)) {
+      if (verifyOrderToken(order.public_order_number, token.trim())) {
         isAuthorized = true;
       }
     }
 
+    // 2. Verify contact if not yet authorized
     if (!isAuthorized && contact) {
-      const normalizedInput = normalizeContact(contact);
-      const addr = order.shipping_address_snapshot as { phone: string; email: string };
-      const orderPhone = normalizeContact(addr?.phone || "");
-      const orderEmail = (addr?.email || "").toLowerCase();
+      const lookup = normalizeContactLookup(contact);
 
-      if (normalizedInput === orderPhone || normalizedInput === orderEmail) {
-        isAuthorized = true;
+      // Parse address snapshot
+      let addr: Record<string, any> = {};
+      if (order.shipping_address_snapshot) {
+        if (typeof order.shipping_address_snapshot === "string") {
+          try {
+            addr = JSON.parse(order.shipping_address_snapshot);
+          } catch {
+            addr = {};
+          }
+        } else if (typeof order.shipping_address_snapshot === "object") {
+          addr = order.shipping_address_snapshot;
+        }
+      }
+
+      const customer = (order.customers as any) || {};
+
+      // Order contact candidates
+      const orderPhones = [
+        normalizeIndianPhone(addr.phone),
+        normalizeIndianPhone(customer.phone),
+        (addr.phone || "").replace(/\D/g, ""),
+        (customer.phone || "").replace(/\D/g, ""),
+      ].filter(Boolean);
+
+      const orderEmails = [
+        normalizeEmail(addr.email),
+        normalizeEmail(customer.email),
+        (addr.email || "").trim().toLowerCase(),
+        (customer.email || "").trim().toLowerCase(),
+      ].filter(Boolean);
+
+      if (lookup.type === "phone") {
+        isAuthorized = orderPhones.some(
+          (p) => p === lookup.value || (lookup.value && p.endsWith(lookup.value))
+        );
+      } else if (lookup.type === "email") {
+        isAuthorized = orderEmails.includes(lookup.value);
+      } else {
+        // Unknown type: compare both phone digits and email
+        const digits = contact.replace(/\D/g, "");
+        const lower = contact.trim().toLowerCase();
+        isAuthorized =
+          (digits.length >= 10 && orderPhones.some((p) => p.endsWith(digits.slice(-10)))) ||
+          orderEmails.includes(lower);
       }
     }
 
     if (!isAuthorized) {
       return NextResponse.json(
-        { error: "Unauthorized. Contact information does not match the order or invalid token." },
+        { error: NOT_FOUND_MESSAGE },
         { status: 401 }
       );
     }
 
-    // Filter out internal system changes for the customer-facing timeline
-    const timeline = (order.order_status_history as any[])
+    // Filter out internal system changes for customer-facing timeline
+    const timeline = (order.order_status_history as any[] || [])
       .filter((h) => h.source !== "admin_manual")
-      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+      .sort(
+        (a, b) =>
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      )
       .map((h) => ({
         type: h.status_type,
         status: h.new_value,
         timestamp: h.created_at,
       }));
 
-    // ── Map items to the shape the frontend OrderResult type expects ──────────
-    const items = (order.order_items as any[]).map((i) => ({
+    // Map items
+    const items = (order.order_items as any[] || []).map((i) => ({
       name: i.product_name_snapshot,
       image: i.product_image_snapshot ?? null,
       quantity: i.quantity,
@@ -161,9 +207,8 @@ export async function POST(req: NextRequest) {
   } catch (err: any) {
     console.error("[track-order] server error:", err);
     return NextResponse.json(
-      { error: "Server error retrieving order", details: err?.message },
+      { error: "Server error retrieving order. Please try again." },
       { status: 500 }
     );
   }
 }
-

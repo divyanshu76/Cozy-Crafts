@@ -68,7 +68,8 @@ interface OrderResult {
 // ── Content ──────────────────────────────────────────────────────────────────
 function TrackOrderContent() {
   const searchParams = useSearchParams();
-  const prefillOrderNumber = searchParams.get("order") ?? "";
+  const prefillOrderNumber =
+    searchParams.get("order") || searchParams.get("orderNumber") || "";
   const token = searchParams.get("token") ?? undefined;
 
   const [isLoading, setIsLoading] = React.useState(false);
@@ -77,8 +78,10 @@ function TrackOrderContent() {
 
   // If we have a token, we don't strictly require contact info
   const trackSchemaDynamic = z.object({
-    orderNumber: z.string().min(5, "Enter your order number"),
-    contact: token ? z.string().optional() : z.string().min(5, "Enter your email or phone number"),
+    orderNumber: z.string().min(3, "Enter your order number"),
+    contact: token
+      ? z.string().optional()
+      : z.string().min(3, "Enter your email or phone number"),
   });
 
   const { register, handleSubmit, formState: { errors } } = useForm<TrackFormValues>({
