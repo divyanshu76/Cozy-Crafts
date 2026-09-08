@@ -180,18 +180,7 @@ export async function GET(req: NextRequest) {
       format: "a4",
     });
 
-    try {
-      const robotoRegPath = path.join(process.cwd(), "public", "fonts", "Roboto-Regular.ttf");
-      const robotoBoldPath = path.join(process.cwd(), "public", "fonts", "Roboto-Bold.ttf");
-      if (fs.existsSync(robotoRegPath) && fs.existsSync(robotoBoldPath)) {
-        doc.addFileToVFS("Roboto-Regular.ttf", fs.readFileSync(robotoRegPath).toString("base64"));
-        doc.addFont("Roboto-Regular.ttf", "helvetica", "normal");
-        doc.addFileToVFS("Roboto-Bold.ttf", fs.readFileSync(robotoBoldPath).toString("base64"));
-        doc.addFont("Roboto-Bold.ttf", "helvetica", "bold");
-      }
-    } catch (e) {
-      console.warn("Could not load custom font, fallback to standard helvetica");
-    }
+    // Fallback to standard helvetica due to jsPDF Node.js TTF limitations
 
     const pageW = 210;
     const pageH = 297;
@@ -406,8 +395,8 @@ export async function GET(req: NextRequest) {
         (idx + 1).toString(),
         item.product_name_snapshot || "Custom Handcrafted Item",
         qty.toString(),
-        `₹${unitPrice.toLocaleString("en-IN")}`,
-        `₹${lineTotal.toLocaleString("en-IN")}`,
+        `Rs. ${unitPrice.toLocaleString("en-IN")}`,
+        `Rs. ${lineTotal.toLocaleString("en-IN")}`,
       ];
     });
 
@@ -460,14 +449,14 @@ export async function GET(req: NextRequest) {
 
     // Subtotal
     doc.text("Subtotal:", totLabelX, totY);
-    doc.text(`₹${Number(order.subtotal).toLocaleString("en-IN")}`, totValueX, totY, { align: "right" });
+    doc.text(`Rs. ${Number(order.subtotal).toLocaleString("en-IN")}`, totValueX, totY, { align: "right" });
 
     // Discount
     if (Number(order.discount) > 0) {
       totY += 6;
       doc.setTextColor(124, 154, 126);
       doc.text("Discount:", totLabelX, totY);
-      doc.text(`−₹${Number(order.discount).toLocaleString("en-IN")}`, totValueX, totY, { align: "right" });
+      doc.text(`−Rs. ${Number(order.discount).toLocaleString("en-IN")}`, totValueX, totY, { align: "right" });
       doc.setTextColor(107, 86, 72);
     }
 
@@ -477,7 +466,7 @@ export async function GET(req: NextRequest) {
     doc.text(
       Number(order.shipping_fee) === 0
         ? "FREE"
-        : `₹${Number(order.shipping_fee).toLocaleString("en-IN")}`,
+        : `Rs. ${Number(order.shipping_fee).toLocaleString("en-IN")}`,
       totValueX,
       totY,
       { align: "right" }
@@ -487,7 +476,7 @@ export async function GET(req: NextRequest) {
     if (order.cod_fee && Number(order.cod_fee) > 0) {
       totY += 6;
       doc.text("COD Handling:", totLabelX, totY);
-      doc.text(`₹${Number(order.cod_fee).toLocaleString("en-IN")}`, totValueX, totY, { align: "right" });
+      doc.text(`Rs. ${Number(order.cod_fee).toLocaleString("en-IN")}`, totValueX, totY, { align: "right" });
     }
 
     // Divider
@@ -502,7 +491,7 @@ export async function GET(req: NextRequest) {
     doc.setFontSize(11);
     doc.setTextColor(62, 44, 34);
     doc.text("Grand Total:", totLabelX, totY);
-    doc.text(`₹${Number(order.total).toLocaleString("en-IN")}`, totValueX, totY, { align: "right" });
+    doc.text(`Rs. ${Number(order.total).toLocaleString("en-IN")}`, totValueX, totY, { align: "right" });
 
     // ── STEP 8: Footer ──────────────────────────────────────────────────────
     const footerY = pageH - 18;
