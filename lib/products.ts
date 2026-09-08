@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { supabaseBrowserClient } from "@/lib/supabase/client";
 import { Product, ProductVariant } from "@/types/product";
 
@@ -78,7 +79,7 @@ const PRODUCT_SELECT = `
   inventory ( stock, variant_id )
 `;
 
-export async function getProducts(): Promise<Product[]> {
+export const getProducts = cache(async function getProducts(): Promise<Product[]> {
   const { data, error } = await supabaseBrowserClient
     .from("products")
     .select(PRODUCT_SELECT)
@@ -90,9 +91,9 @@ export async function getProducts(): Promise<Product[]> {
     return [];
   }
   return (data as unknown as SupabaseProduct[]).map(mapToProduct);
-}
+});
 
-export async function getProductBySlug(
+export const getProductBySlug = cache(async function getProductBySlug(
   slug: string
 ): Promise<Product | undefined> {
   const { data, error } = await supabaseBrowserClient
@@ -108,7 +109,7 @@ export async function getProductBySlug(
   }
   if (!data) return undefined;
   return mapToProduct(data as unknown as SupabaseProduct);
-}
+});
 
 const VIRTUAL_CATEGORY_FILTERS: Record<
   string,
@@ -118,7 +119,7 @@ const VIRTUAL_CATEGORY_FILTERS: Record<
   "best-sellers": { column: "is_best_seller", value: true },
 };
 
-export async function getProductsByCategory(
+export const getProductsByCategory = cache(async function getProductsByCategory(
   categorySlug: string
 ): Promise<Product[]> {
   const virtual = VIRTUAL_CATEGORY_FILTERS[categorySlug];
@@ -149,9 +150,9 @@ export async function getProductsByCategory(
     return products.filter((p) => p.category === categorySlug);
   }
   return products;
-}
+});
 
-export async function getFeaturedProducts(): Promise<Product[]> {
+export const getFeaturedProducts = cache(async function getFeaturedProducts(): Promise<Product[]> {
   const { data, error } = await supabaseBrowserClient
     .from("products")
     .select(PRODUCT_SELECT)
@@ -161,9 +162,9 @@ export async function getFeaturedProducts(): Promise<Product[]> {
 
   if (error) { console.error('Supabase Error:', error); return []; } if (!data) return [];
   return (data as unknown as SupabaseProduct[]).map(mapToProduct);
-}
+});
 
-export async function getBestSellers(): Promise<Product[]> {
+export const getBestSellers = cache(async function getBestSellers(): Promise<Product[]> {
   const { data, error } = await supabaseBrowserClient
     .from("products")
     .select(PRODUCT_SELECT)
@@ -173,9 +174,9 @@ export async function getBestSellers(): Promise<Product[]> {
 
   if (error) { console.error('Supabase Error:', error); return []; } if (!data) return [];
   return (data as unknown as SupabaseProduct[]).map(mapToProduct);
-}
+});
 
-export async function getNewArrivals(): Promise<Product[]> {
+export const getNewArrivals = cache(async function getNewArrivals(): Promise<Product[]> {
   const { data, error } = await supabaseBrowserClient
     .from("products")
     .select(PRODUCT_SELECT)
@@ -185,9 +186,9 @@ export async function getNewArrivals(): Promise<Product[]> {
 
   if (error) { console.error('Supabase Error:', error); return []; } if (!data) return [];
   return (data as unknown as SupabaseProduct[]).map(mapToProduct);
-}
+});
 
-export async function getCategories() {
+export const getCategories = cache(async function getCategories() {
   const { data, error } = await supabaseBrowserClient
     .from("categories")
     .select("id, name, slug, description")
@@ -195,7 +196,7 @@ export async function getCategories() {
 
   if (error) { console.error('Supabase Error:', error); return []; } if (!data) return [];
   return data;
-}
+});
 
 // Keep legacy named export for call sites that import { categories }
 export const categories: ReturnType<typeof getCategories> extends Promise<
@@ -213,7 +214,7 @@ export function getCategoryTitle(categorySlug: string): string {
   return CATEGORY_TITLES[categorySlug] ?? categorySlug;
 }
 
-export async function getReviewsForProduct(productId: string) {
+export const getReviewsForProduct = cache(async function getReviewsForProduct(productId: string) {
   const { data, error } = await supabaseBrowserClient
     .from("reviews")
     .select("id, customer_name, rating, body, image_url, verified, created_at")
@@ -223,7 +224,7 @@ export async function getReviewsForProduct(productId: string) {
 
   if (error) { console.error('Supabase Error:', error); return []; } if (!data) return [];
   return data;
-}
+});
 
 export async function searchProducts(query: string): Promise<Product[]> {
   const lower = query.toLowerCase().trim();
@@ -246,7 +247,7 @@ export async function searchProducts(query: string): Promise<Product[]> {
   return (data as unknown as SupabaseProduct[]).map(mapToProduct);
 }
 
-export async function getRelatedProducts(productId: string, categorySlug: string, limit: number = 4): Promise<Product[]> {
+export const getRelatedProducts = cache(async function getRelatedProducts(productId: string, categorySlug: string, limit: number = 4): Promise<Product[]> {
   // First, try to get products in the same category
   const { data: categoryData, error: categoryError } = await supabaseBrowserClient
     .from("products")
@@ -286,4 +287,4 @@ export async function getRelatedProducts(productId: string, categorySlug: string
   }
 
   return related;
-}
+});

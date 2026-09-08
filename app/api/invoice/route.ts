@@ -504,7 +504,7 @@ export async function GET(req: NextRequest) {
     doc.setFontSize(8.5);
     doc.setTextColor(107, 86, 72);
     doc.text(
-      "Thank you for choosing CozyCraft — Handmade with love.\nThis is a computer-generated invoice and does not require a physical signature.",
+      "Thank you for choosing CozyCraft — Handmade with love.",
       pageW / 2,
       footerY,
       { align: "center" }

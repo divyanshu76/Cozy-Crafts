@@ -15,9 +15,11 @@ import { protestRevolution } from "@/lib/fonts"
 import { cn } from "@/lib/utils"
 
 export default async function Home() {
-  const bestSellers = await getBestSellers();
-  const featured = await getFeaturedProducts();
-  const newArrivals = await getNewArrivals();
+  const [bestSellers, featured, newArrivals] = await Promise.all([
+    getBestSellers(),
+    getFeaturedProducts(),
+    getNewArrivals()
+  ]);
 
   return (
     <div className="flex flex-col w-full">
