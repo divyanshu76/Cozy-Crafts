@@ -3,16 +3,34 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { sendOrderEmail } from "@/lib/notifications/send-order-email";
 import type { EmailTrigger } from "@/lib/email/render";
 
+import crypto from "crypto";
+
 // Prevents Next.js from caching this route
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
-  // Optional cron secret auth (configured in Vercel settings)
   const authHeader = req.headers.get("authorization");
-  if (
-    process.env.CRON_SECRET &&
-    authHeader !== `Bearer ${process.env.CRON_SECRET}`
-  ) {
+  const cronSecret = process.env.CRON_SECRET;
+
+  if (!cronSecret) {
+    console.error("[cron/retry-failed-emails] CRON_SECRET is not configured.");
+    return NextResponse.json({ error: "Server Configuration Error" }, { status: 500 });
+  }
+
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const token = authHeader.split(" ")[1];
+  
+  try {
+    const secretBuffer = Buffer.from(cronSecret);
+    const tokenBuffer = Buffer.from(token);
+
+    if (secretBuffer.length !== tokenBuffer.length || !crypto.timingSafeEqual(secretBuffer, tokenBuffer)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+  } catch (e) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
