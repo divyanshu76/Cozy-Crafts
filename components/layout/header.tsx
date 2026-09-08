@@ -2,7 +2,7 @@
 import * as React from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { ShoppingBag, Menu, Heart } from "lucide-react"
+import { ShoppingBag, Menu, Heart, Search } from "lucide-react"
 import { useCartStore } from "@/hooks/useCartStore"
 import { cn } from "@/lib/utils"
 import { CartDrawer } from "@/components/cart/cart-drawer"
@@ -71,6 +71,14 @@ export function Header() {
 
           {/* Actions (Right) */}
           <div className="flex flex-1 items-center justify-end gap-2 md:gap-4">
+            {/* Mobile Search Button */}
+            <button
+              onClick={() => setIsSearchOpen(true)}
+              className="p-2 text-espresso hover:bg-cream-soft rounded-full transition-colors sm:hidden"
+              aria-label="Search"
+            >
+              <Search size={20} />
+            </button>
             <div className="hidden sm:block">
               <ExpandingSearchDock />
             </div>

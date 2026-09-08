@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { ArrowLeft, Package, Truck, FileText } from "lucide-react";
 import Link from "next/link";
 import { CreateShipmentButton } from "./CreateShipmentButton";
+import { sendOrderEmail } from "@/lib/notifications/send-order-email";
 
 // Valid order_status enum values as of migration 0002
 const ALL_STATUSES = [
@@ -38,12 +39,44 @@ async function assertAdmin() {
 }
 
 // ── Server actions ───────────────────────────────────────────────────────────
-async function updateOrderStatus(orderId: string, status: string) {
+async function updateOrderStatus(orderId: string, newStatus: string) {
   "use server";
   await assertAdmin();
   const supabase = getSupabaseServerClient();
-  await supabase.from("orders").update({ status, updated_at: new Date().toISOString() }).eq("id", orderId);
+
+  // Fetch current status for audit log
+  const { data: currentOrder } = await supabase
+    .from("orders")
+    .select("status")
+    .eq("id", orderId)
+    .single();
+
+  const oldStatus = currentOrder?.status ?? "UNKNOWN";
+
+  await supabase
+    .from("orders")
+    .update({ status: newStatus, updated_at: new Date().toISOString() })
+    .eq("id", orderId);
+
+  // Log the status change for audit trail
+  await supabase.rpc("log_status_change", {
+    p_order_id: orderId,
+    p_status_type: "order_status",
+    p_old_value: oldStatus,
+    p_new_value: newStatus,
+    p_source: "admin_manual",
+  });
+
+  // Send appropriate email notification based on new status.
+  // sendOrderEmail is idempotent — safe to call even if webhook already sent it.
+  if (newStatus === "CANCELLED") {
+    await sendOrderEmail(orderId, "ORDER_CANCELLED");
+  } else if (newStatus === "CONFIRMED" || newStatus === "PAID") {
+    await sendOrderEmail(orderId, "ORDER_CONFIRMED");
+  }
+
   revalidatePath(`/admin/orders/${orderId}`);
+  revalidatePath(`/admin/orders`);
 }
 
 async function updateTracking(orderId: string, trackingNumber: string, courier: string) {

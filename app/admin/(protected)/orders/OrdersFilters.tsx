@@ -8,14 +8,20 @@ export function OrdersFilters({ currentStatus, currentPayment }: { currentStatus
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const handleFilterChange = (key: string, value: string) => {
-    const params = new URLSearchParams(searchParams);
-    if (value === "ALL") {
-      params.delete(key);
-    } else {
-      params.set(key, value);
+  const handleFilterChange = (key: "status" | "payment", value: string) => {
+    const params = new URLSearchParams();
+    const newStatus = key === "status" ? value : currentStatus;
+    const newPayment = key === "payment" ? value : currentPayment;
+
+    if (newStatus && newStatus !== "ALL") {
+      params.set("status", newStatus);
     }
-    router.push(`${pathname}?${params.toString()}`);
+    if (newPayment && newPayment !== "ALL") {
+      params.set("payment", newPayment);
+    }
+
+    const qs = params.toString();
+    router.push(qs ? `${pathname}?${qs}` : pathname);
   };
 
   return (

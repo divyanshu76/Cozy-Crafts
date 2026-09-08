@@ -4,6 +4,8 @@ import Link from "next/link"
 import Image from "next/image"
 import { motion } from "framer-motion"
 import { fadeUp, staggerContainer } from "@/lib/motion"
+import { protestRevolution } from "@/lib/fonts"
+import { cn } from "@/lib/utils"
 
 const categories = [
   { name: "Gift Bundles", slug: "gift-bundles", image: "/assets/categories-gift-bundle.png", isLarge: true },
@@ -17,6 +19,14 @@ export function CategoryTiles() {
   return (
     <section className="py-16 md:py-24 bg-cream">
       <div className="container mx-auto px-4 md:px-6">
+        <div className="text-center mb-10 md:mb-12">
+          <p className="text-xs uppercase tracking-widest text-[var(--color-sage-deep)] font-semibold mb-2">
+            Shop by Category
+          </p>
+          <h2 className={cn("text-3xl md:text-4xl text-espresso", protestRevolution.className)}>
+            Find Something Made With Love
+          </h2>
+        </div>
         <motion.div
           variants={staggerContainer()}
           initial="hidden"

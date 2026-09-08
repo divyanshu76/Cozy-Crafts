@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { sendOrderEmail } from "@/lib/notifications/send-order-email";
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
@@ -78,6 +79,9 @@ export async function POST(req: NextRequest) {
       })
       .eq("id", payment.order_id)
       .neq("status", "PAID");
+
+    // Send confirmation email (idempotent — will skip if webhook already sent)
+    await sendOrderEmail(payment.order_id, "ORDER_CONFIRMED");
   }
 
   return NextResponse.json({ success: true });

@@ -6,20 +6,45 @@ import type { OrderForEmail } from "@/lib/email/templates/types";
 export async function sendOrderEmail(orderId: string, trigger: EmailTrigger) {
   const supabase = getSupabaseServerClient();
 
-  // 1. Create the initial pending log entry
-  const { data: logRow } = await supabase
+  // ── Idempotency guard ────────────────────────────────────────────────────
+  // Check if a 'sent' email already exists for this (order_id, trigger) pair.
+  // The partial unique index (uidx_email_log_order_trigger_sent) enforces this
+  // at the DB level too, but checking first avoids a wasted round-trip.
+  const { data: existingSent } = await supabase
+    .from("email_log")
+    .select("id")
+    .eq("order_id", orderId)
+    .eq("trigger", trigger)
+    .eq("status", "sent")
+    .maybeSingle();
+
+  if (existingSent) {
+    console.log(`[send-order-email] Skipping duplicate — already sent ${trigger} for order ${orderId}`);
+    return;
+  }
+
+  // ── 1. Create the initial pending log entry ──────────────────────────────
+  // Use upsert to handle the race condition where two concurrent callers both
+  // pass the guard above before either has written a 'sent' row.
+  const { data: logRow, error: logInsertError } = await supabase
     .from("email_log")
     .insert({ order_id: orderId, trigger, status: "pending" })
     .select()
     .single();
 
-  if (!logRow) {
-    console.error(`Failed to create email_log for order ${orderId}, trigger ${trigger}`);
+  if (logInsertError || !logRow) {
+    // If the error is a unique constraint violation it means the webhook already
+    // sent this email in a concurrent request — safe to skip.
+    if (logInsertError?.code === "23505") {
+      console.log(`[send-order-email] Skipping — concurrent send for ${trigger} on order ${orderId}`);
+      return;
+    }
+    console.error(`Failed to create email_log for order ${orderId}, trigger ${trigger}`, logInsertError);
     return;
   }
 
   try {
-    // 2. Fetch all necessary data
+    // ── 2. Fetch all necessary data ────────────────────────────────────────
     const { data: order } = await supabase
       .from("orders")
       .select("*, order_items(*), customers(email, full_name)")
@@ -33,6 +58,10 @@ export async function sendOrderEmail(orderId: string, trigger: EmailTrigger) {
     // Generate tracking token
     const { generateOrderToken } = await import("@/lib/crypto");
     const trackingToken = generateOrderToken(order.public_order_number);
+
+    // Determine refund context for cancellation emails
+    const isCancelledWithPayment =
+      trigger === "ORDER_CANCELLED" && order.payment_status === "CAPTURED";
 
     const orderData: OrderForEmail = {
       publicOrderNumber: order.public_order_number,
@@ -48,6 +77,8 @@ export async function sendOrderEmail(orderId: string, trigger: EmailTrigger) {
       paymentMethod: order.payment_method,
       codFee: Number(order.cod_fee ?? 0),
       trackingToken,
+      // If this is a cancellation of a paid order, surface refund context
+      refundAmount: isCancelledWithPayment ? Number(order.total) : null,
       items: order.order_items.map((item: any) => ({
         id: item.id,
         productName: item.product_name_snapshot,
@@ -58,7 +89,7 @@ export async function sendOrderEmail(orderId: string, trigger: EmailTrigger) {
       })),
     };
 
-    // 3. Render and send
+    // ── 3. Render and send ─────────────────────────────────────────────────
     const { subject, react } = renderEmailForTrigger(trigger, orderData);
 
     const textFallback = `Order ${order.public_order_number} Update: ${subject}\n\nTrack your order here: https://www.cozycrafts.shop/track-order?order=${order.public_order_number}&token=${trackingToken}\n\nThank you for choosing Cozy Craft!`;
@@ -76,12 +107,13 @@ export async function sendOrderEmail(orderId: string, trigger: EmailTrigger) {
       throw new Error(result.error.message);
     }
 
-    // 4. Mark success
+    // ── 4. Mark success (idempotent: the partial unique index prevents dupes) ─
     await supabase
       .from("email_log")
       .update({
         status: "sent",
         resend_message_id: result.data?.id,
+        sent_at: new Date().toISOString(),
         attempts: logRow.attempts + 1,
         updated_at: new Date().toISOString(),
       })

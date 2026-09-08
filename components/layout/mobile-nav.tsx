@@ -3,7 +3,7 @@ import Link from "next/link"
 import { Drawer } from "@/components/ui/drawer"
 import { ChevronRight, Search, Heart, Package } from "lucide-react"
 import { RandomLetterSwap } from "@/components/ui/random-letter-swap"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 
 interface MobileNavProps {
   isOpen: boolean;
@@ -12,6 +12,17 @@ interface MobileNavProps {
 
 export function MobileNav({ isOpen, onClose }: MobileNavProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [searchQuery, setSearchQuery] = React.useState("");
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      onClose();
+      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      setSearchQuery("");
+    }
+  };
   
   const links = [
     { name: "Home", href: "/" },
@@ -28,16 +39,18 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
     <Drawer isOpen={isOpen} onClose={onClose} side="left" className="w-[85vw] sm:w-[400px]">
       <div className="flex flex-col h-full">
         {/* Search */}
-        <div className="p-4 border-b border-taupe/20">
+        <form onSubmit={handleSearch} className="p-4 border-b border-taupe/20">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-taupe h-5 w-5" />
             <input 
               type="text" 
-              placeholder="Search..." 
-              className="w-full bg-cream-soft rounded-full py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-sage"
+              placeholder="Search products..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-cream-soft rounded-full py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-sage text-espresso placeholder:text-taupe"
             />
           </div>
-        </div>
+        </form>
 
         {/* Links */}
         <nav className="flex-1 overflow-y-auto py-4">

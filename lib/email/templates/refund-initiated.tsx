@@ -3,11 +3,11 @@ import { Heading, Text, Button } from "@react-email/components";
 import { EmailLayout } from "./layout";
 import type { OrderForEmail } from "./types";
 
-const SITE = "https://cozycraft.example";
+const SITE = "https://www.cozycrafts.shop";
 
 export function RefundInitiatedEmail({ order }: { order: OrderForEmail }) {
   return (
-    <EmailLayout previewText="Your refund has been initiated.">
+    <EmailLayout previewText="Your refund has been processed.">
       <Heading
         style={{
           fontFamily: "'Fraunces', Georgia, serif",
@@ -17,13 +17,16 @@ export function RefundInitiatedEmail({ order }: { order: OrderForEmail }) {
           margin: "0 0 8px",
         }}
       >
-        Refund Initiated 💸
+        Refund Processed 💸
       </Heading>
       <Text style={{ color: "#6B5648", margin: "0 0 12px", lineHeight: "1.6" }}>
-        A refund {order.refundAmount ? `of ₹${order.refundAmount.toLocaleString("en-IN")} ` : ""}for order <strong style={{ color: "#3E2C22" }}>#{order.publicOrderNumber}</strong> has been successfully initiated from our end.
+        A refund {order.refundAmount ? `of ₹${order.refundAmount.toLocaleString("en-IN")} ` : ""}for order <strong style={{ color: "#3E2C22" }}>#{order.publicOrderNumber}</strong> has been processed from our end.
       </Text>
       <Text style={{ color: "#6B5648", margin: "0 0 28px", lineHeight: "1.6" }}>
-        Please allow 5–7 business days for the amount to reflect in your original payment method, depending on your bank's processing time.
+        Depending on your bank or payment provider, it typically reflects in your original payment method once settled. If you have any questions, please contact us at{" "}
+        <a href="mailto:hello@cozycrafts.shop" style={{ color: "#7C9A7E" }}>
+          hello@cozycrafts.shop
+        </a>.
       </Text>
 
       <Button
