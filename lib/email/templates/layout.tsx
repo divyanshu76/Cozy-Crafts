@@ -97,10 +97,10 @@ export function EmailLayout({ children, previewText }: EmailLayoutProps) {
           >
             Questions? Email us at{" "}
             <Link
-              href="mailto:k7616168@gmail.com"
+              href="mailto:hello@cozycrafts.shop"
               style={{ color: "#9BAA8C", textDecoration: "underline" }}
             >
-              k7616168@gmail.com
+              hello@cozycrafts.shop
             </Link>
             <br />
             Cozy Craft · Ramaipatti, Mirzapur, 231001, Uttar Pradesh, India

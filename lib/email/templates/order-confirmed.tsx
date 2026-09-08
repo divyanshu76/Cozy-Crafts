@@ -61,6 +61,19 @@ export function OrderConfirmedEmail({ order }: { order: OrderForEmail }) {
           <strong>Payment Status:</strong>{" "}
           {order.paymentMethod === "COD" ? "Pending" : "Paid"}
         </Text>
+        {order.shippingAddress && (
+          <>
+            <Hr style={{ borderColor: "#EAE2D6", margin: "16px 0" }} />
+            <Text style={{ margin: "0 0 8px", fontSize: 14, color: "#6B5648" }}>
+              <strong>Shipping Address:</strong>
+            </Text>
+            <Text style={{ margin: 0, fontSize: 14, color: "#6B5648", lineHeight: "1.5" }}>
+              {order.shippingAddress.fullName}<br />
+              {order.shippingAddress.addressLine}<br />
+              {[order.shippingAddress.city, order.shippingAddress.state, order.shippingAddress.pinCode].filter(Boolean).join(", ")}
+            </Text>
+          </>
+        )}
       </Section>
 
       {/* Order items */}

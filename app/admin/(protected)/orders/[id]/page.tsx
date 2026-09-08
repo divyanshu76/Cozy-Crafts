@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { ArrowLeft, Package, Truck, FileText } from "lucide-react";
 import Link from "next/link";
 import { CreateShipmentButton } from "./CreateShipmentButton";
+import { AdminNotesForm, AdminStatusForm } from "./AdminOrderActions";
 import { sendOrderEmail } from "@/lib/notifications/send-order-email";
 import { generateOrderToken } from "@/lib/crypto";
 
@@ -270,21 +271,13 @@ export default async function OrderDetailPage({
             <h2 className="font-semibold text-espresso flex items-center gap-2 mb-4">
               <FileText className="h-4 w-4 text-sage" /> Internal Notes
             </h2>
-            <form action={async (fd: FormData) => {
-              "use server";
-              await updateNotesAction(fd.get("notes") as string ?? "");
-            }}>
-              <textarea
-                name="notes"
-                defaultValue={order.internal_notes ?? ""}
-                rows={4}
-                className="w-full border border-taupe/30 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sage/30 resize-none"
-                placeholder="Private notes visible only to admins…"
-              />
-              <button type="submit" className="mt-2 text-sm bg-sage text-white px-4 py-2 rounded-lg hover:bg-sage/80 transition-colors">
-                Save Notes
-              </button>
-            </form>
+            <AdminNotesForm 
+              initialNotes={order.internal_notes ?? ""} 
+              updateNotesAction={async (notes: string) => {
+                "use server";
+                await updateNotesAction(notes);
+              }} 
+            />
           </div>
         </div>
 
@@ -330,25 +323,14 @@ export default async function OrderDetailPage({
           {/* Split Status 2: Order (Editable) */}
           <div className="bg-white rounded-xl border border-taupe/20 shadow-sm p-5">
             <h2 className="font-semibold text-espresso mb-3">Order Status</h2>
-            <form action={async (fd: FormData) => {
-              "use server";
-              await updateStatusAction(fd.get("status") as string);
-            }}>
-              <select
-                name="status"
-                defaultValue={order.status}
-                className="w-full border border-taupe/30 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-sage/30"
-              >
-                {ALL_STATUSES.map((s) => (
-                  <option key={s} value={s}>
-                    {s.replace(/_/g, " ")}
-                  </option>
-                ))}
-              </select>
-              <button type="submit" className="w-full text-sm border border-taupe/30 text-espresso px-4 py-2 rounded-lg hover:bg-cream-soft transition-colors">
-                Update Master Status
-              </button>
-            </form>
+            <AdminStatusForm 
+              currentStatus={order.status}
+              allStatuses={ALL_STATUSES}
+              updateStatusAction={async (status: string) => {
+                "use server";
+                await updateStatusAction(status);
+              }}
+            />
             <p className="text-xs text-espresso-soft mt-3">
               Most updates happen automatically via webhooks. Only override this if something goes wrong.
             </p>

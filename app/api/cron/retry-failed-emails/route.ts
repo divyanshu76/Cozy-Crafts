@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { sendOrderEmail } from "@/lib/notifications/send-order-email";
+import type { EmailTrigger } from "@/lib/email/render";
 
 // Prevents Next.js from caching this route
 export const dynamic = "force-dynamic";
@@ -16,32 +17,49 @@ export async function GET(req: Request) {
   }
 
   const supabase = getSupabaseServerClient();
+  const tag = "[cron/retry-failed-emails]";
 
-  const { data: failedEmails } = await supabase
+  // ── Fetch rows that need processing ──────────────────────────────────────
+  // We retry two categories:
+  //   1. status = 'failed'   — previous attempt errored; retried after 5 min
+  //   2. status = 'pending'  — stuck (e.g. COD legacy path or timed-out
+  //                           serverless function); retried after 10 min
+  //                           to avoid double-sends on in-flight rows
+  const cutoffFailed  = new Date(Date.now() - 1000 * 60 *  5).toISOString(); // 5 min
+  const cutoffPending = new Date(Date.now() - 1000 * 60 * 10).toISOString(); // 10 min
+
+  const { data: emailsToRetry } = await supabase
     .from("email_log")
-    .select("id, order_id, trigger, attempts")
-    .eq("status", "failed")
-    .lt("attempts", 3)
-    // Don't retry immediately; wait a bit
-    .lt("updated_at", new Date(Date.now() - 1000 * 60 * 5).toISOString())
-    .limit(50); // batch size
+    .select("id, order_id, trigger, attempts, status")
+    .or(
+      `and(status.eq.failed,updated_at.lt.${cutoffFailed},attempts.lt.3),` +
+      `and(status.eq.pending,updated_at.lt.${cutoffPending},attempts.lt.3)`
+    )
+    .limit(50); // batch size per run
 
-  if (!failedEmails || failedEmails.length === 0) {
+  if (!emailsToRetry || emailsToRetry.length === 0) {
+    console.log(tag, "No emails to retry.");
     return NextResponse.json({ processed: 0 });
   }
 
-  let processedCount = 0;
-  for (const log of failedEmails) {
-    // Reset back to pending so we can call sendOrderEmail again
-    await supabase
-      .from("email_log")
-      .update({ status: "pending", error: null })
-      .eq("id", log.id);
+  console.log(tag, `Retrying ${emailsToRetry.length} email(s)`);
 
-    // This will overwrite the same email_log row or create a new one
-    // We already passed the attempts guard.
-    await sendOrderEmail(log.order_id, log.trigger as any);
-    processedCount++;
+  let processedCount = 0;
+  for (const log of emailsToRetry) {
+    try {
+      // Reset to pending so sendOrderEmail() can claim it and transition it.
+      // sendOrderEmail() checks for an existing 'sent' row first (idempotency
+      // guard) and skips if already delivered — safe for concurrent runs.
+      await supabase
+        .from("email_log")
+        .update({ status: "pending", error: null, updated_at: new Date().toISOString() })
+        .eq("id", log.id);
+
+      await sendOrderEmail(log.order_id, log.trigger as EmailTrigger);
+      processedCount++;
+    } catch (err) {
+      console.error(tag, `Failed to retry email_log ${log.id}:`, err);
+    }
   }
 
   return NextResponse.json({ processed: processedCount });

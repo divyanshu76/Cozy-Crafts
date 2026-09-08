@@ -45,6 +45,24 @@ async function isAuthorizedAdmin(): Promise<boolean> {
   }
 }
 
+/** Map order status to a badge color [R, G, B] */
+function statusColor(status: string): [number, number, number] {
+  switch (status) {
+    case "PAID":
+    case "CONFIRMED":
+    case "PROCESSING":
+    case "DELIVERED":
+      return [124, 154, 126]; // sage green
+    case "CANCELLED":
+    case "PAYMENT_FAILED":
+      return [200, 80, 70];   // muted red
+    case "REFUNDED":
+      return [100, 120, 180]; // soft blue
+    default:
+      return [150, 130, 110]; // warm taupe
+  }
+}
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const rawOrderParam =
@@ -150,34 +168,86 @@ export async function GET(req: NextRequest) {
       .filter(Boolean)
       .join(", ");
 
-    // ── Build PDF with jsPDF & jspdf-autotable ──────────────────────────────
+    // ── Derive invoice status from actual order status (never hardcode) ────
+    const orderStatus = (order.status as string) || "PENDING";
+    const statusLabel = orderStatus.replace(/_/g, " ");
+    const [sR, sG, sB] = statusColor(orderStatus);
+
+    // ── Build PDF ──────────────────────────────────────────────────────────
     const doc = new jsPDF({
       orientation: "portrait",
       unit: "mm",
       format: "a4",
     });
 
-    // Header Background banner
-    doc.setFillColor(250, 246, 239); // #FAF6EF (Cream soft)
-    doc.rect(0, 0, 210, 42, "F");
+    const pageW = 210;
+    const pageH = 297;
 
-    // Try embedding Cozy Craft logo
+    // ── STEP 1: Background watermark ────────────────────────────────────────
+    // Draw before any content so it sits behind everything.
+    try {
+      const logoPath = path.join(process.cwd(), "public", "assets", "logo.png");
+      if (fs.existsSync(logoPath)) {
+        const logoData = fs.readFileSync(logoPath);
+        const logoBase64 = logoData.toString("base64");
+        const logoDataUrl = `data:image/png;base64,${logoBase64}`;
+
+        // Get true image dimensions to compute aspect ratio
+        const imgProps = doc.getImageProperties(logoDataUrl);
+        const aspectRatio = imgProps.width / imgProps.height;
+
+        // Watermark: large, centered, very low opacity (~8%)
+        const wmH = 110; // mm
+        const wmW = wmH * aspectRatio;
+        const wmX = (pageW - wmW) / 2;
+        const wmY = (pageH - wmH) / 2;
+
+        // Save graphics state, set opacity, draw, restore
+        const gState = new (doc as any).GState({ opacity: 0.07 });
+        doc.setGState(gState);
+        doc.addImage(logoDataUrl, "PNG", wmX, wmY, wmW, wmH, undefined, "FAST");
+
+        // Reset opacity to full for all subsequent drawing
+        const fullState = new (doc as any).GState({ opacity: 1.0 });
+        doc.setGState(fullState);
+      }
+    } catch {
+      // Watermark is decorative — never let it block the invoice
+    }
+
+    // ── STEP 2: Header background banner ───────────────────────────────────
+    doc.setFillColor(250, 246, 239); // #FAF6EF cream
+    doc.rect(0, 0, pageW, 46, "F");
+
+    // Fine separator line below header
+    doc.setDrawColor(203, 184, 162);
+    doc.setLineWidth(0.3);
+    doc.line(14, 46, pageW - 14, 46);
+
+    // ── STEP 3: Logo (header, left column) ─────────────────────────────────
     let logoEmbedded = false;
     try {
       const logoPath = path.join(process.cwd(), "public", "assets", "logo.png");
       if (fs.existsSync(logoPath)) {
-        const logoBase64 = fs.readFileSync(logoPath).toString("base64");
-        doc.addImage(
-          `data:image/png;base64,${logoBase64}`,
-          "PNG",
-          14,
-          8,
-          46,
-          14,
-          undefined,
-          "FAST"
-        );
+        const logoData = fs.readFileSync(logoPath);
+        const logoBase64 = logoData.toString("base64");
+        const logoDataUrl = `data:image/png;base64,${logoBase64}`;
+
+        // Auto-compute width from actual aspect ratio at fixed 16mm height
+        const imgProps = doc.getImageProperties(logoDataUrl);
+        const targetH = 16;
+        const targetW = (imgProps.width / imgProps.height) * targetH;
+
+        doc.addImage(logoDataUrl, "PNG", 14, 8, targetW, targetH, undefined, "FAST");
         logoEmbedded = true;
+
+        // Tagline and contact below logo
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.setTextColor(107, 86, 72);
+        doc.text("Little Things, Made With Love.", 14, 29);
+        doc.text("hello@cozycrafts.shop", 14, 34);
+        doc.text("www.cozycrafts.shop", 14, 39);
       }
     } catch {
       logoEmbedded = false;
@@ -185,92 +255,135 @@ export async function GET(req: NextRequest) {
 
     if (!logoEmbedded) {
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(22);
-      doc.setTextColor(62, 44, 34); // #3E2C22
-      doc.text("Cozy Craft", 14, 20);
+      doc.setFontSize(18);
+      doc.setTextColor(62, 44, 34);
+      doc.text("CozyCraft", 14, 18);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(107, 86, 72);
+      doc.text("Little Things, Made With Love.", 14, 25);
+      doc.text("hello@cozycrafts.shop | www.cozycrafts.shop", 14, 30);
     }
 
+    // ── STEP 4: TAX INVOICE title + meta (header, right column) ───────────
+    const rightX = 196; // right-align anchor
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(17);
+    doc.setTextColor(62, 44, 34);
+    doc.text("TAX INVOICE", rightX, 16, { align: "right" });
+
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
+    doc.setFontSize(8.5);
     doc.setTextColor(107, 86, 72);
-    doc.text("Little Things, Made With Love.", 14, 28);
-    doc.text("hello@cozycrafts.shop | https://www.cozycrafts.shop", 14, 33);
 
-    // TAX INVOICE label
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(18);
-    doc.setTextColor(62, 44, 34);
-    doc.text("TAX INVOICE", 145, 20);
-
-    // Status pill
-    const orderStatusFormatted = (order.status || "CONFIRMED").replace(/_/g, " ");
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    doc.setTextColor(124, 154, 126); // Sage
-    doc.text(`Status: ${orderStatusFormatted}`, 145, 27);
-
-    // Order & Billed To details
-    const startY = 52;
-    doc.setFontSize(10);
-    doc.setTextColor(62, 44, 34);
-
-    // Left Column: Order metadata
-    doc.setFont("helvetica", "bold");
-    doc.text("Order Number:", 14, startY);
-    doc.setFont("helvetica", "normal");
-    doc.text(order.public_order_number, 45, startY);
-
-    doc.setFont("helvetica", "bold");
-    doc.text("Order Date:", 14, startY + 6);
-    doc.setFont("helvetica", "normal");
+    // Invoice number = order number (same for D2C)
+    doc.text(`Invoice No: ${order.public_order_number}`, rightX, 23, { align: "right" });
     doc.text(
-      new Date(order.created_at).toLocaleDateString("en-IN", {
+      `Date: ${new Date(order.created_at).toLocaleDateString("en-IN", {
         day: "numeric",
         month: "short",
         year: "numeric",
         timeZone: "Asia/Kolkata",
-      }),
-      45,
-      startY + 6
+      })}`,
+      rightX,
+      29,
+      { align: "right" }
     );
 
+    // Status badge — colored pill
+    const badgeLabel = statusLabel;
     doc.setFont("helvetica", "bold");
-    doc.text("Payment Mode:", 14, startY + 12);
+    doc.setFontSize(7.5);
+    const badgeTextW = doc.getTextWidth(badgeLabel) + 6; // padding
+    const badgeX = rightX - badgeTextW;
+    const badgeY = 32;
+
+    // Pill background
+    doc.setFillColor(sR, sG, sB);
+    doc.setDrawColor(sR, sG, sB);
+    doc.roundedRect(badgeX, badgeY, badgeTextW, 5.5, 1.5, 1.5, "F");
+
+    // Pill text
+    doc.setTextColor(255, 255, 255);
+    doc.text(badgeLabel, badgeX + badgeTextW / 2, badgeY + 3.8, { align: "center" });
+
+    // ── STEP 5: Order information + Billing address ─────────────────────────
+    const infoY = 54;
+
+    // Left: Order metadata
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(62, 44, 34);
+    doc.text("ORDER DETAILS", 14, infoY);
+
+    doc.setDrawColor(203, 184, 162);
+    doc.setLineWidth(0.2);
+    doc.line(14, infoY + 2, 90, infoY + 2);
+
+    const labelX = 14;
+    const valX = 50;
+    doc.setFontSize(8.5);
+
+    const rows: [string, string][] = [
+      ["Order No:", order.public_order_number],
+      ["Order Date:", new Date(order.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Kolkata" })],
+      ["Payment Mode:", order.payment_method === "COD" ? "Cash on Delivery" : "Online (Razorpay)"],
+      ["Payment Status:", order.payment_status],
+    ];
+
+    rows.forEach(([label, value], i) => {
+      const y = infoY + 7 + i * 6;
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(107, 86, 72);
+      doc.text(label, labelX, y);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(62, 44, 34);
+      doc.text(value, valX, y);
+    });
+
+    // Right: Billing / Shipping Address
+    const addrX = 115;
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(62, 44, 34);
+    doc.text("BILLED TO / SHIP TO", addrX, infoY);
+
+    doc.setDrawColor(203, 184, 162);
+    doc.line(addrX, infoY + 2, 196, infoY + 2);
+
+    doc.setFontSize(8.5);
+    let addrY = infoY + 8;
+
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(62, 44, 34);
+    doc.text(customerName, addrX, addrY);
+    addrY += 5.5;
+
     doc.setFont("helvetica", "normal");
-    const paymentLabel =
-      order.payment_method === "COD" ? "Cash on Delivery" : "Online Payment";
-    doc.text(`${paymentLabel} (${order.payment_status})`, 45, startY + 12);
+    doc.setTextColor(107, 86, 72);
 
-    // Right Column: Billed To
-    const rightColX = 120;
-    doc.setFont("helvetica", "bold");
-    doc.text("Billed To / Shipping Address:", rightColX, startY);
-
-    doc.setFont("helvetica", "bold");
-    doc.text(customerName, rightColX, startY + 6);
-
-    doc.setFont("helvetica", "normal");
-    let currentY = startY + 11;
     if (customerEmail) {
-      doc.text(customerEmail, rightColX, currentY);
-      currentY += 5;
+      doc.text(customerEmail, addrX, addrY);
+      addrY += 5;
     }
     if (customerPhone) {
-      doc.text(`Ph: ${customerPhone}`, rightColX, currentY);
-      currentY += 5;
+      doc.text(`Ph: ${customerPhone}`, addrX, addrY);
+      addrY += 5;
     }
     if (addressLine) {
-      doc.text(addressLine, rightColX, currentY);
-      currentY += 5;
+      const wrappedAddr = doc.splitTextToSize(addressLine, 76);
+      doc.text(wrappedAddr, addrX, addrY);
+      addrY += wrappedAddr.length * 5;
     }
     if (cityStatePin) {
-      doc.text(cityStatePin, rightColX, currentY);
-      currentY += 5;
+      doc.text(cityStatePin, addrX, addrY);
     }
 
-    const tableStartY = Math.max(startY + 22, currentY + 4);
+    // ── STEP 6: Items table ─────────────────────────────────────────────────
+    const tableStartY = Math.max(infoY + 36, addrY + 8);
 
-    // ── Items Table ────────────────────────────────────────────────────────
     const items = order.order_items || [];
     const tableData = items.map((item: any, idx: number) => {
       const unitPrice = Number(item.unit_price_snapshot || 0);
@@ -280,132 +393,143 @@ export async function GET(req: NextRequest) {
         (idx + 1).toString(),
         item.product_name_snapshot || "Custom Handcrafted Item",
         qty.toString(),
-        `INR ${unitPrice.toLocaleString("en-IN")}`,
-        `INR ${lineTotal.toLocaleString("en-IN")}`,
+        `₹${unitPrice.toLocaleString("en-IN")}`,
+        `₹${lineTotal.toLocaleString("en-IN")}`,
       ];
     });
 
     autoTable(doc, {
       startY: tableStartY,
-      head: [["#", "Item Description", "Qty", "Unit Price", "Total"]],
+      head: [["#", "Item Description", "Qty", "Unit Price", "Amount"]],
       body: tableData,
-      theme: "grid",
+      theme: "plain",
       headStyles: {
-        fillColor: [124, 154, 126], // Sage #7C9A7E
-        textColor: 255,
+        fillColor: [62, 44, 34],    // espresso dark brown
+        textColor: [250, 246, 239], // cream
         fontStyle: "bold",
-        fontSize: 10,
+        fontSize: 9,
+        cellPadding: { top: 4, bottom: 4, left: 4, right: 4 },
       },
       alternateRowStyles: {
-        fillColor: [250, 246, 239],
+        fillColor: [250, 246, 239], // cream stripe
+      },
+      bodyStyles: {
+        lineColor: [220, 205, 188],
+        lineWidth: 0.2,
       },
       styles: {
         font: "helvetica",
-        fontSize: 9,
+        fontSize: 8.5,
         textColor: [62, 44, 34],
-        cellPadding: 3.5,
+        cellPadding: { top: 4, bottom: 4, left: 4, right: 4 },
+        overflow: "linebreak",
       },
       columnStyles: {
         0: { cellWidth: 10, halign: "center" },
-        1: { cellWidth: 95 },
-        2: { cellWidth: 16, halign: "center" },
-        3: { cellWidth: 35, halign: "right" },
-        4: { cellWidth: 35, halign: "right" },
+        1: { cellWidth: 97 },
+        2: { cellWidth: 14, halign: "center" },
+        3: { cellWidth: 34, halign: "right" },
+        4: { cellWidth: 34, halign: "right" },
       },
     });
 
-    // ── Summary Totals ─────────────────────────────────────────────────────
+    // ── STEP 7: Totals ──────────────────────────────────────────────────────
     // @ts-ignore
-    let finalY = (doc as any).lastAutoTable?.finalY
-      ? (doc as any).lastAutoTable.finalY + 8
-      : tableStartY + 40;
+    const tableEndY: number = (doc as any).lastAutoTable?.finalY ?? (tableStartY + 30);
+    let totY = tableEndY + 10;
 
-    const labelX = 140;
-    const valueX = 196;
+    const totLabelX = 138;
+    const totValueX = 196;
 
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.setTextColor(62, 44, 34);
+    doc.setFontSize(9);
+    doc.setTextColor(107, 86, 72);
 
-    doc.text("Subtotal:", labelX, finalY);
-    doc.text(
-      `INR ${Number(order.subtotal).toLocaleString("en-IN")}`,
-      valueX,
-      finalY,
-      { align: "right" }
-    );
+    // Subtotal
+    doc.text("Subtotal:", totLabelX, totY);
+    doc.text(`₹${Number(order.subtotal).toLocaleString("en-IN")}`, totValueX, totY, { align: "right" });
 
-    if (order.discount > 0) {
-      finalY += 6;
+    // Discount
+    if (Number(order.discount) > 0) {
+      totY += 6;
       doc.setTextColor(124, 154, 126);
-      doc.text("Discount:", labelX, finalY);
-      doc.text(
-        `- INR ${Number(order.discount).toLocaleString("en-IN")}`,
-        valueX,
-        finalY,
-        { align: "right" }
-      );
-      doc.setTextColor(62, 44, 34);
+      doc.text("Discount:", totLabelX, totY);
+      doc.text(`−₹${Number(order.discount).toLocaleString("en-IN")}`, totValueX, totY, { align: "right" });
+      doc.setTextColor(107, 86, 72);
     }
 
-    finalY += 6;
-    doc.text("Shipping:", labelX, finalY);
+    // Shipping
+    totY += 6;
+    doc.text("Shipping:", totLabelX, totY);
     doc.text(
       Number(order.shipping_fee) === 0
         ? "FREE"
-        : `INR ${Number(order.shipping_fee).toLocaleString("en-IN")}`,
-      valueX,
-      finalY,
+        : `₹${Number(order.shipping_fee).toLocaleString("en-IN")}`,
+      totValueX,
+      totY,
       { align: "right" }
     );
 
+    // COD fee
     if (order.cod_fee && Number(order.cod_fee) > 0) {
-      finalY += 6;
-      doc.text("COD Handling Fee:", labelX, finalY);
-      doc.text(
-        `INR ${Number(order.cod_fee).toLocaleString("en-IN")}`,
-        valueX,
-        finalY,
-        { align: "right" }
-      );
+      totY += 6;
+      doc.text("COD Handling:", totLabelX, totY);
+      doc.text(`₹${Number(order.cod_fee).toLocaleString("en-IN")}`, totValueX, totY, { align: "right" });
     }
 
-    finalY += 8;
-    doc.setDrawColor(203, 184, 162); // Taupe divider
-    doc.line(labelX, finalY - 4, valueX, finalY - 4);
+    // Divider
+    totY += 5;
+    doc.setDrawColor(62, 44, 34);
+    doc.setLineWidth(0.5);
+    doc.line(totLabelX, totY, totValueX, totY);
 
+    // Grand Total
+    totY += 7;
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
+    doc.setFontSize(11);
     doc.setTextColor(62, 44, 34);
-    doc.text("Grand Total:", labelX, finalY);
-    doc.text(
-      `INR ${Number(order.total).toLocaleString("en-IN")}`,
-      valueX,
-      finalY,
-      { align: "right" }
-    );
+    doc.text("Grand Total:", totLabelX, totY);
+    doc.text(`₹${Number(order.total).toLocaleString("en-IN")}`, totValueX, totY, { align: "right" });
 
-    // ── Footer ─────────────────────────────────────────────────────────────
-    doc.setFont("helvetica", "normal");
+    // ── STEP 8: Footer ──────────────────────────────────────────────────────
+    const footerY = pageH - 18;
+
+    doc.setDrawColor(203, 184, 162);
+    doc.setLineWidth(0.3);
+    doc.line(14, footerY - 5, pageW - 14, footerY - 5);
+
+    doc.setFont("helvetica", "italic");
     doc.setFontSize(8.5);
     doc.setTextColor(107, 86, 72);
-    doc.text("Thank you for choosing Cozy Craft! Handmade with love. ♡", 105, 278, {
-      align: "center",
-    });
     doc.text(
-      "This is a computer-generated invoice and requires no physical signature.",
-      105,
-      283,
+      "Thank you for choosing CozyCraft — Handmade with love. ♡",
+      pageW / 2,
+      footerY,
       { align: "center" }
     );
 
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(150, 130, 110);
+    doc.text(
+      "This is a computer-generated invoice and does not require a physical signature.",
+      pageW / 2,
+      footerY + 5,
+      { align: "center" }
+    );
+
+    // ── Produce PDF ─────────────────────────────────────────────────────────
     const pdfBuffer = doc.output("arraybuffer");
+
+    // Status-aware filename: Invoice-CC-20260908-0003-CONFIRMED.pdf
+    const safeStatus = orderStatus.replace(/[^A-Z0-9_]/gi, "_").toUpperCase();
+    const filename = `Invoice-${order.public_order_number}-${safeStatus}.pdf`;
 
     return new NextResponse(pdfBuffer, {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `inline; filename="Invoice-${order.public_order_number}.pdf"`,
+        "Content-Disposition": `inline; filename="${filename}"`,
         "Cache-Control": "private, no-cache, no-store, must-revalidate",
       },
     });
@@ -414,3 +538,4 @@ export async function GET(req: NextRequest) {
     return new NextResponse("Server error generating invoice.", { status: 500 });
   }
 }
+

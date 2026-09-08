@@ -27,4 +27,11 @@ export interface OrderForEmail {
     lineTotal: number;
   }[];
   trackingToken?: string;
+  shippingAddress?: {
+    fullName: string;
+    addressLine: string;
+    city: string;
+    state: string;
+    pinCode: string;
+  } | null;
 }

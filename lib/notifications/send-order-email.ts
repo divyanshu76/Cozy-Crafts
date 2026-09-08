@@ -47,7 +47,7 @@ export async function sendOrderEmail(orderId: string, trigger: EmailTrigger) {
     // ── 2. Fetch all necessary data ────────────────────────────────────────
     const { data: order } = await supabase
       .from("orders")
-      .select("*, order_items(*), customers(email, full_name)")
+      .select("*, order_items(*), customers(email, full_name), shipping_address_snapshot")
       .eq("id", orderId)
       .single();
 
@@ -62,6 +62,25 @@ export async function sendOrderEmail(orderId: string, trigger: EmailTrigger) {
     // Determine refund context for cancellation emails
     const isCancelledWithPayment =
       trigger === "ORDER_CANCELLED" && order.payment_status === "CAPTURED";
+
+    let shippingAddr: any = null;
+    if (order.shipping_address_snapshot) {
+      try {
+        const parsed =
+          typeof order.shipping_address_snapshot === "string"
+            ? JSON.parse(order.shipping_address_snapshot)
+            : order.shipping_address_snapshot;
+        shippingAddr = {
+          fullName: parsed.fullName || customer.full_name || "Customer",
+          addressLine: parsed.addressLine || "",
+          city: parsed.city || "",
+          state: parsed.state || "",
+          pinCode: parsed.pinCode || "",
+        };
+      } catch (e) {
+        console.error("Failed to parse shipping_address_snapshot for email", e);
+      }
+    }
 
     const orderData: OrderForEmail = {
       publicOrderNumber: order.public_order_number,
@@ -79,6 +98,7 @@ export async function sendOrderEmail(orderId: string, trigger: EmailTrigger) {
       trackingToken,
       // If this is a cancellation of a paid order, surface refund context
       refundAmount: isCancelledWithPayment ? Number(order.total) : null,
+      shippingAddress: shippingAddr,
       items: order.order_items.map((item: any) => ({
         id: item.id,
         productName: item.product_name_snapshot,

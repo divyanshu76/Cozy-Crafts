@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getRazorpayClient } from "@/lib/razorpay/client";
+import { sendOrderEmail } from "@/lib/notifications/send-order-email";
 import {
   normalizeIndianPhone,
   isValidIndianMobile,
@@ -285,16 +286,13 @@ export async function POST(req: NextRequest) {
         // Don't fail — order is created, status update is secondary
       }
 
-      // Queue confirmation email
-      const { error: emailError } = await supabase.from("email_log").insert({
-        order_id: order.id,
-        trigger: "ORDER_CONFIRMED",
-        status: "pending",
+      // Send confirmation email via the idempotent sendOrderEmail() path.
+      // This creates an email_log row (pending → sent/failed) and handles
+      // all retry logic. Fire without await so the HTTP response is not held
+      // hostage by the email provider, but errors are still caught and logged.
+      sendOrderEmail(order.id, "ORDER_CONFIRMED").catch((err) => {
+        console.error(tag, "step=cod_email_send", err);
       });
-      if (emailError) {
-        // Log but don't fail — email is a notification, not core
-        console.error(tag, "step=email_log_insert", { code: emailError.code, message: emailError.message });
-      }
 
       return NextResponse.json({
         orderId: order.id,
