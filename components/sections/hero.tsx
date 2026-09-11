@@ -40,7 +40,7 @@ export function Hero() {
               <Button asChild size="lg">
                 <Link href="/shop">Shop Handmade</Link>
               </Button>
-              <Link href="/collections/gift-bundles" className="group flex items-center gap-2 text-espresso font-medium hover:text-sage transition-colors">
+              <Link href="/shop/gift-bundles" className="group flex items-center gap-2 text-espresso font-medium hover:text-sage transition-colors">
                 Explore Gifts
                 <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
               </Link>

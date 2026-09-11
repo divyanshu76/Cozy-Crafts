@@ -10,22 +10,23 @@ import { Gallery } from "@/components/sections/gallery"
 import { TestimonialsMarquee } from "@/components/sections/testimonials-marquee"
 import { Newsletter } from "@/components/sections/newsletter"
 import { ScrollRevealHeadline } from "@/components/ui/scroll-reveal-headline"
-import { getBestSellers, getFeaturedProducts, getNewArrivals } from "@/lib/products"
+import { getBestSellers, getFeaturedProducts, getNewArrivals, getCategories } from "@/lib/products"
 import { protestRevolution } from "@/lib/fonts"
 import { cn } from "@/lib/utils"
 
 export default async function Home() {
-  const [bestSellers, featured, newArrivals] = await Promise.all([
+  const [bestSellers, featured, newArrivals, categories] = await Promise.all([
     getBestSellers(),
     getFeaturedProducts(),
-    getNewArrivals()
+    getNewArrivals(),
+    getCategories()
   ]);
 
   return (
     <div className="flex flex-col w-full">
       <AnnouncementRibbon />
       <Hero />
-      <CategoryTiles />
+      <CategoryTiles categories={categories} />
       
       <section className="py-16 md:py-24 bg-cream overflow-hidden">
         <div className="container mx-auto">

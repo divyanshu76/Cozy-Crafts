@@ -48,12 +48,13 @@ export default function ContactPage() {
           <MapPin className="h-4 w-4" strokeWidth={1.5} /> Ramaipatti, Mirzapur, 231001, Uttar Pradesh, India
         </p>
         <a
-          href="https://instagram.com/cozycrafts"
+          href="https://www.instagram.com/cozycraftss.in/"
           target="_blank"
-          rel="noreferrer"
+          rel="noopener noreferrer"
+          aria-label="Follow Cozy Craft on Instagram"
           className="inline-flex items-center gap-2 hover:text-[var(--color-espresso)] transition-colors"
         >
-          <InstagramIcon className="h-4 w-4" strokeWidth={1.5} /> @cozycrafts
+          <InstagramIcon className="h-4 w-4" strokeWidth={1.5} /> @cozycraftss.in
         </a>
       </div>
     </div>

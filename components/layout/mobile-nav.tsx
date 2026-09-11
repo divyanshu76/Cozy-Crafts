@@ -31,7 +31,7 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
     { name: "Flower Bouquets", href: "/shop/flower-bouquets" },
     { name: "Hair Accessories", href: "/shop/hair-accessories" },
     { name: "Charms", href: "/shop/charms" },
-    { name: "Gift Bundles", href: "/collections/gift-bundles" },
+    { name: "Gift Bundles", href: "/shop/gift-bundles" },
     { name: "New Arrivals", href: "/shop/new-arrivals" },
   ];
 

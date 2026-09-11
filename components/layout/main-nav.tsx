@@ -7,7 +7,7 @@ import { RandomLetterSwap } from "@/components/ui/random-letter-swap";
 const NAV_LINKS = [
   { label: "Home", href: "/" },
   { label: "Shop", href: "/shop" },
-  { label: "Gifts", href: "/collections/gift-bundles" },
+  { label: "Gifts", href: "/shop/gift-bundles" },
   { label: "New Arrivals", href: "/shop/new-arrivals" },
   { label: "About", href: "/about" },
 ];

@@ -7,15 +7,21 @@ import { fadeUp, staggerContainer } from "@/lib/motion"
 import { protestRevolution } from "@/lib/fonts"
 import { cn } from "@/lib/utils"
 
-const categories = [
-  { name: "Gift Bundles", slug: "gift-bundles", image: "/assets/categories-gift-bundle.png", isLarge: true },
-  { name: "Keychains", slug: "keychains", image: "/assets/Categories-keychains.png" },
-  { name: "Bouquets", slug: "flower-bouquets", image: "/assets/Categories-bouquets.png" },
-  { name: "Charms", slug: "charms", image: "/assets/Categories-charms.png" },
-  { name: "Personalized", slug: "personalized-gifts", image: "/assets/Categories-%20Personalized%20Gifts.png" },
-]
+// Helper to determine image for category
+const CATEGORY_IMAGES: Record<string, string> = {
+  "gift-bundles": "/assets/categories-gift-bundle.png",
+  "keychains": "/assets/Categories-keychains.png",
+  "flower-bouquets": "/assets/Categories-bouquets.png",
+  "charms": "/assets/Categories-charms.png",
+  "personalized-gifts": "/assets/Categories-%20Personalized%20Gifts.png",
+}
 
-export function CategoryTiles() {
+const FALLBACK_IMAGE = "/assets/placeholder.png"
+
+export function CategoryTiles({ categories }: { categories: any[] }) {
+  // If no categories passed, show empty or fallback
+  if (!categories || categories.length === 0) return null;
+
   return (
     <section className="py-16 md:py-24 bg-cream">
       <div className="container mx-auto px-4 md:px-6">
@@ -34,17 +40,19 @@ export function CategoryTiles() {
           viewport={{ once: true, margin: "-80px" }}
           className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 lg:gap-6"
         >
-          {categories.map((category, index) => {
-            const isLarge = category.isLarge;
+          {categories.slice(0, 5).map((category, index) => {
+            const isLarge = index === 0; // Make the first one large
+            const image = CATEGORY_IMAGES[category.slug] || FALLBACK_IMAGE;
+
             return (
               <motion.div
                 key={category.slug}
                 variants={fadeUp}
                 className={`relative group overflow-hidden rounded-xl ${isLarge ? "col-span-2 row-span-2 aspect-square md:aspect-auto" : "col-span-1 aspect-square"}`}
               >
-                <Link href={`/collections/${category.slug}`} className="absolute inset-0 block">
+                <Link href={`/shop/${category.slug}`} className="absolute inset-0 block">
                   <Image
-                    src={category.image}
+                    src={image}
                     alt={category.name}
                     fill
                     className="object-cover transition-transform duration-400 ease-out group-hover:scale-[1.04]"

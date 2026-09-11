@@ -203,6 +203,17 @@ export async function POST(req: NextRequest) {
   }
 
   revalidatePath("/", "layout");
+  revalidatePath("/shop");
+  if (body.category_id) {
+    // We need the category slug for targeted revalidation. 
+    // We can fetch it or just rely on the full layout revalidation.
+    // For completeness, we fetch it here.
+    const { data: cat } = await adminDb.from("categories").select("slug").eq("id", body.category_id).maybeSingle();
+    if (cat?.slug) {
+      revalidatePath(`/shop/${cat.slug}`);
+    }
+  }
+
   return NextResponse.json({ ok: true, productId }, { status: 201 });
 }
 

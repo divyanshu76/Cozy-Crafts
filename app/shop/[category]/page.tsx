@@ -1,15 +1,16 @@
-import { getProductsByCategory, categories, getCategoryTitle } from "@/lib/products"
+import { getProductsByCategory, getCategoryTitle, getCategories } from "@/lib/products"
 import { ProductGrid } from "@/components/products/product-grid"
 import { notFound } from "next/navigation"
 
 interface CategoryPageProps {
-  params: {
+  params: Promise<{
     category: string;
-  }
+  }>
 }
 
-export function generateStaticParams() {
-  const realCategories = categories.map((category) => ({
+export async function generateStaticParams() {
+  const categoriesList = await getCategories();
+  const realCategories = categoriesList.map((category) => ({
     category: category.slug,
   }));
   return [
@@ -22,7 +23,8 @@ export function generateStaticParams() {
 export async function generateMetadata(props: CategoryPageProps) {
   const params = await props.params;
   const title = getCategoryTitle(params.category);
-  const categoryData = categories.find(c => c.slug === params.category);
+  const categoriesList = await getCategories();
+  const categoryData = categoriesList.find(c => c.slug === params.category);
 
   return {
     title: `${title} | Cozy Craft`,
@@ -33,18 +35,16 @@ export async function generateMetadata(props: CategoryPageProps) {
 export default async function CategoryPage(props: CategoryPageProps) {
   const params = await props.params;
   const products = await getProductsByCategory(params.category);
+  const categoriesList = await getCategories();
   
-  // If no products match and it's not a known category, 404
-  const isKnownCategory = categories.some((c) => c.slug === params.category) || 
-                          params.category === "new-arrivals" || 
-                          params.category === "best-sellers";
+  const isVirtual = params.category === "new-arrivals" || params.category === "best-sellers";
+  const categoryData = categoriesList.find(c => c.slug === params.category);
                           
-  if (!isKnownCategory && products.length === 0) {
+  if (!categoryData && !isVirtual) {
     notFound();
   }
 
   const title = getCategoryTitle(params.category);
-  const categoryData = categories.find(c => c.slug === params.category);
 
   return (
     <div className="container mx-auto px-4 md:px-6 py-12 md:py-20">
@@ -61,7 +61,13 @@ export default async function CategoryPage(props: CategoryPageProps) {
         <p className="text-sm text-espresso-soft">{products.length} products</p>
       </div>
 
-      <ProductGrid products={products} />
+      {products.length > 0 ? (
+        <ProductGrid products={products} />
+      ) : (
+        <div className="text-center py-20">
+          <p className="text-lg text-espresso-soft">No products in this category yet.</p>
+        </div>
+      )}
     </div>
   )
 }

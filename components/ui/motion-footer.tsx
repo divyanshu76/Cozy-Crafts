@@ -421,7 +421,7 @@ export function CinematicFooter() {
                 Shop Keychains
               </MagneticButton>
 
-              <MagneticButton as="a" href="/collections/gift-bundles" className="footer-glass-pill px-6 sm:px-8 py-3 sm:py-3.5 rounded-full text-[var(--color-espresso)] font-bold text-sm md:text-base flex items-center gap-2.5 group">
+              <MagneticButton as="a" href="/shop/gift-bundles" className="footer-glass-pill px-6 sm:px-8 py-3 sm:py-3.5 rounded-full text-[var(--color-espresso)] font-bold text-sm md:text-base flex items-center gap-2.5 group">
                 <Gift className="h-5 w-5 text-[var(--color-sage-deep)] group-hover:scale-110 transition-transform" strokeWidth={1.5} />
                 Gift Bundles
               </MagneticButton>
@@ -455,12 +455,13 @@ export function CinematicFooter() {
                 <MapPin className="h-4 w-4 text-[var(--color-sage-deep)]" strokeWidth={1.5} /> Ramaipatti, Mirzapur, 231001, UP, India
               </span>
               <a
-                href="https://instagram.com/cozycrafts"
+                href="https://www.instagram.com/cozycraftss.in/"
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
+                aria-label="Follow Cozy Craft on Instagram"
                 className="inline-flex items-center gap-1.5 hover:text-[var(--color-espresso)] transition-colors"
               >
-                <InstagramIcon className="h-4 w-4 text-[var(--color-sage-deep)]" /> @cozycrafts
+                <InstagramIcon className="h-4 w-4 text-[var(--color-sage-deep)]" /> @cozycraftss.in
               </a>
             </div>
           </div>
