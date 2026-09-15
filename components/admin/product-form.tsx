@@ -319,8 +319,11 @@ export function ProductForm({ initialCategories, initialData }: ProductFormProps
         ...(height    && { height:  parseFloat(height) }),
       };
 
-      const res = await fetch("/api/admin/products", {
-        method: "POST",
+      const url = isEditMode ? `/api/admin/products/${initialData.id}` : "/api/admin/products";
+      const method = isEditMode ? "PATCH" : "POST";
+
+      const res = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });

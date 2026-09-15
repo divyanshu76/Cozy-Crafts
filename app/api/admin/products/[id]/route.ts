@@ -58,6 +58,20 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: `A product with slug "${body.slug}" already exists.` }, { status: 409 });
   }
 
+  // Check SKU uniqueness if provided (excluding current product)
+  if (body.sku?.trim()) {
+    const { data: existingSku } = await adminDb
+      .from("products")
+      .select("id")
+      .eq("sku", body.sku.trim())
+      .neq("id", productId)
+      .maybeSingle();
+
+    if (existingSku) {
+      return NextResponse.json({ error: `SKU "${body.sku}" is already in use.` }, { status: 409 });
+    }
+  }
+
   // 1. Update product base data
   const { error: productError } = await adminDb
     .from("products")
