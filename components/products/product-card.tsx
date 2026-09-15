@@ -2,7 +2,7 @@
 import * as React from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { Heart, ShoppingBag } from "lucide-react"
+import { Heart, ShoppingBag, Image as ImageIcon } from "lucide-react"
 import { Product } from "@/types/product"
 import { useCartStore } from "@/hooks/useCartStore"
 import { useWishlistStore } from "@/hooks/useWishlistStore"
@@ -57,27 +57,36 @@ export function ProductCard({ product }: ProductCardProps) {
     >
       {/* Image Container */}
       <div className="relative aspect-[4/5] w-full overflow-hidden rounded-lg bg-cream-soft">
-        <Image
-          src={product.images[0]}
-          alt={product.name}
-          fill
-          className={cn(
-            "object-cover transition-all duration-300 ease-out group-hover:scale-[1.04]",
-            isHovered && product.images[1] ? "opacity-0" : "opacity-100"
-          )}
-          sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
-        />
-        {product.images[1] && (
-          <Image
-            src={product.images[1]}
-            alt={`${product.name} alternate view`}
-            fill
-            className={cn(
-              "object-cover transition-opacity duration-300 absolute inset-0",
-              isHovered ? "opacity-100" : "opacity-0"
+        {product.images && product.images.length > 0 ? (
+          <>
+            <Image
+              src={product.images[0]}
+              alt={product.name}
+              fill
+              className={cn(
+                "object-cover transition-all duration-300 ease-out group-hover:scale-[1.04]",
+                isHovered && product.images[1] ? "opacity-0" : "opacity-100"
+              )}
+              sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
+            />
+            {product.images[1] && (
+              <Image
+                src={product.images[1]}
+                alt={`${product.name} alternate view`}
+                fill
+                className={cn(
+                  "object-cover transition-opacity duration-300 absolute inset-0",
+                  isHovered ? "opacity-100" : "opacity-0"
+                )}
+                sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
+              />
             )}
-            sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
-          />
+          </>
+        ) : (
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-taupe/50">
+            <ImageIcon size={32} className="mb-2" />
+            <span className="text-xs font-serif">Cozy Craft</span>
+          </div>
         )}
 
         {/* Badges */}

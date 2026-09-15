@@ -3,14 +3,29 @@ import { Package, Plus } from "lucide-react";
 import Link from "next/link";
 import { ToastProvider } from "@/components/ui/toast";
 import { ProductActions } from "@/components/admin/product-actions";
+import { Pagination } from "@/components/ui/pagination";
 
-export default async function AdminProductsPage() {
+export default async function AdminProductsPage({
+  searchParams
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
   const supabase = getSupabaseServerClient();
 
-  const { data: products } = await supabase
+  const resolvedParams = await searchParams;
+  const page = Number(resolvedParams.page) || 1;
+  const limit = 20;
+  const start = (page - 1) * limit;
+  const end = start + limit - 1;
+
+  const { data: products, count } = await supabase
     .from("products")
-    .select("id, name, slug, price, active, is_featured, is_new, is_best_seller, categories(name)")
-    .order("created_at", { ascending: false });
+    .select("id, name, slug, price, active, is_featured, is_new, is_best_seller, categories(name)", { count: "exact" })
+    .order("created_at", { ascending: false })
+    .range(start, end);
+
+  const totalCount = count || 0;
+  const totalPages = Math.ceil(totalCount / limit);
 
   return (
     <ToastProvider>
@@ -18,7 +33,7 @@ export default async function AdminProductsPage() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="font-serif text-3xl text-espresso">Products</h1>
-            <p className="text-sm text-espresso-soft mt-1">{(products ?? []).length} products</p>
+            <p className="text-sm text-espresso-soft mt-1">{totalCount} products</p>
           </div>
           <Link
             href="/admin/products/new"
@@ -90,6 +105,7 @@ export default async function AdminProductsPage() {
             </table>
           </div>
         </div>
+        <Pagination totalPages={totalPages} />
       </div>
     </ToastProvider>
   );

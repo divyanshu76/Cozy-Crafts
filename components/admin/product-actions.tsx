@@ -2,20 +2,53 @@
 
 import * as React from "react";
 import { MoreHorizontal, Edit, Trash2, ExternalLink, EyeOff, AlertTriangle } from "lucide-react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/toast";
 
 export function ProductActions({ productId, slug, productName }: { productId: string; slug: string; productName: string }) {
   const [open, setOpen] = React.useState(false);
+  const buttonRef = React.useRef<HTMLButtonElement>(null);
+  const [dropdownStyle, setDropdownStyle] = React.useState<React.CSSProperties>({});
+  
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [isSettingInactive, setIsSettingInactive] = React.useState(false);
-  // When set, shows the "can't delete, set inactive?" dialog
   const [showInactiveDialog, setShowInactiveDialog] = React.useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
-  const toggleOpen = () => setOpen(!open);
+  const toggleOpen = () => {
+    if (!open && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      
+      const MENU_HEIGHT = 120;
+      const MENU_WIDTH = 176; // w-44
+      const shouldFlip = spaceBelow < MENU_HEIGHT;
+      
+      setDropdownStyle({
+        position: 'fixed',
+        top: shouldFlip ? rect.top - MENU_HEIGHT - 4 : rect.bottom + 4,
+        left: rect.right - MENU_WIDTH,
+        width: MENU_WIDTH,
+        zIndex: 50
+      });
+    }
+    setOpen(!open);
+  };
+
+  React.useEffect(() => {
+    if (open) {
+      const handleScroll = () => setOpen(false);
+      window.addEventListener('scroll', handleScroll, true);
+      window.addEventListener('resize', handleScroll);
+      return () => {
+        window.removeEventListener('scroll', handleScroll, true);
+        window.removeEventListener('resize', handleScroll);
+      };
+    }
+  }, [open]);
 
   const handleDelete = async () => {
     if (!confirm(`Are you sure you want to delete "${productName}"?\nThis will remove the product and all its images/inventory. This cannot be undone.`)) {
@@ -139,6 +172,7 @@ export function ProductActions({ productId, slug, productName }: { productId: st
 
       <div className="relative">
         <button
+          ref={buttonRef}
           onClick={toggleOpen}
           disabled={isDeleting || isSettingInactive}
           className="p-1.5 text-espresso-soft hover:bg-taupe/10 rounded-md transition-colors disabled:opacity-50"
@@ -146,10 +180,13 @@ export function ProductActions({ productId, slug, productName }: { productId: st
           <MoreHorizontal className="w-5 h-5" />
         </button>
 
-        {open && (
+        {open && typeof document !== 'undefined' && createPortal(
           <>
             <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-            <div className="absolute right-0 top-full mt-1 w-44 bg-white rounded-md shadow-lg border border-taupe/20 z-50 overflow-hidden py-1">
+            <div 
+              className="bg-white rounded-md shadow-lg border border-taupe/20 overflow-hidden py-1"
+              style={dropdownStyle}
+            >
               <Link
                 href={`/product/${slug}`}
                 target="_blank"
@@ -172,7 +209,8 @@ export function ProductActions({ productId, slug, productName }: { productId: st
                 <Trash2 className="w-4 h-4" /> Delete
               </button>
             </div>
-          </>
+          </>,
+          document.body
         )}
       </div>
     </>

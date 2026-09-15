@@ -26,6 +26,7 @@ export interface OrderWithItems {
   public_order_number: string;
   subtotal: number;
   created_at: string;
+  payment_method: string;
   shipping_address_snapshot: {
     fullName: string;
     phone: string;
@@ -40,6 +41,13 @@ export interface OrderWithItems {
     product_name_snapshot: string;
     unit_price_snapshot: number;
     quantity: number;
+    product?: {
+      sku?: string;
+      weight?: number;
+      length?: number;
+      breadth?: number;
+      height?: number;
+    } | null;
   }[];
 }
 
@@ -120,6 +128,44 @@ async function shiprocketFetch<T = unknown>(
   return res.json() as Promise<T>;
 }
 
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * Maps a CozyCraft payment_method to the Shiprocket payment_method string.
+ *
+ * Shiprocket only accepts "COD" or "Prepaid".
+ * All known non-COD methods (RAZORPAY, CARD) are Prepaid.
+ *
+ * An unknown value throws a plain Error (no PII, no secrets) so that
+ * createShipmentAction's existing catch blocks release the shipment_lock
+ * and surface a clear message to the admin.
+ */
+function mapPaymentMethod(method: string): "COD" | "Prepaid" {
+  switch (method) {
+    case "COD":
+      return "COD";
+    case "RAZORPAY":
+    case "CARD":
+      return "Prepaid";
+    default:
+      // Throw — never silently treat unknown values as Prepaid.
+      // The message intentionally omits the actual value to avoid
+      // accidentally leaking internal data into logs or error surfaces.
+      throw new Error("Invalid payment method for shipment creation.");
+  }
+}
+
+/**
+ * Ensures a dimension value sent to Shiprocket is a finite positive number.
+ *
+ * Guards against: zero, negative, NaN, Infinity.
+ * Falls back to the provided default if the value is invalid.
+ */
+function sanitizeDimension(value: number, fallback: number): number {
+  if (!Number.isFinite(value) || value <= 0) return fallback;
+  return value;
+}
+
 // ── Public API ───────────────────────────────────────────────────────────────
 
 /**
@@ -128,45 +174,80 @@ async function shiprocketFetch<T = unknown>(
  * The pickup_location value ("Primary") must exactly match the name of a
  * pickup location configured in your Shiprocket panel → Settings → Pickup.
  *
- * Weight/dimensions are placeholder values for small handmade items.
- * Tune these per your actual product categories and packaging.
+ * Weight/dimensions come from per-product DB values (migration 0009).
+ * Old products without explicit values fall back to sensible defaults.
  */
 export async function createShiprocketOrder(
   order: OrderWithItems
 ): Promise<ShiprocketOrderResponse> {
   const addr = order.shipping_address_snapshot;
 
+  // ── Dimension / weight calculation ─────────────────────────────────────────
+  // Strategy:
+  //   weight  → sum of (per-item weight × quantity)
+  //   length  → max across all items (longest side of the largest item)
+  //   breadth → max across all items
+  //   height  → sum of (per-item height × quantity)  (stacked in box)
+  // All raw values are sanitized before accumulation so that zero/negative/NaN
+  // values in the DB never silently reach Shiprocket.
+
+  let totalWeight = 0;
+  let maxLength = 0;
+  let maxBreadth = 0;
+  let totalHeight = 0;
+
+  const orderItemsPayload = order.order_items.map((item) => {
+    // Sanitize each dimension — reject zero/negative/NaN/Infinity, fall back to defaults.
+    const w = sanitizeDimension(item.product?.weight ?? 0,  0.2);
+    const l = sanitizeDimension(item.product?.length ?? 0,  10);
+    const b = sanitizeDimension(item.product?.breadth ?? 0, 10);
+    const h = sanitizeDimension(item.product?.height ?? 0,  5);
+
+    totalWeight += w * item.quantity;
+    maxLength    = Math.max(maxLength, l);
+    maxBreadth   = Math.max(maxBreadth, b);
+    totalHeight  += h * item.quantity;
+
+    return {
+      name:          item.product_name_snapshot,
+      sku:           item.product?.sku || item.product_id, // Fallback to UUID if SKU missing
+      units:         item.quantity,
+      selling_price: item.unit_price_snapshot,
+    };
+  });
+
+  // Final sanitization pass — should never be needed if per-item sanitization
+  // above is correct, but acts as a last-resort safety net.
+  const finalWeight  = sanitizeDimension(totalWeight,  0.2);
+  const finalLength  = sanitizeDimension(maxLength,    10);
+  const finalBreadth = sanitizeDimension(maxBreadth,   10);
+  const finalHeight  = sanitizeDimension(totalHeight,  5);
+
   return shiprocketFetch<ShiprocketOrderResponse>("/orders/create/adhoc", {
     method: "POST",
     body: JSON.stringify({
-      order_id:   order.public_order_number,
-      order_date: new Date(order.created_at)
-        .toISOString()
-        .slice(0, 19)
-        .replace("T", " "),
-      pickup_location:         "Primary",
-      billing_customer_name:   addr.fullName,
-      billing_address:         addr.addressLine,
-      billing_city:            addr.city,
-      billing_pincode:         addr.pinCode,
-      billing_state:           addr.state,
-      billing_country:         "India",
-      billing_email:           addr.email,
-      billing_phone:           addr.phone,
-      shipping_is_billing:     true,
-      payment_method:          "Prepaid",
-      sub_total:               order.subtotal,
-      order_items: order.order_items.map((item) => ({
-        name:          item.product_name_snapshot,
-        sku:           item.product_id,
-        units:         item.quantity,
-        selling_price: item.unit_price_snapshot,
-      })),
-      // Placeholder dimensions for small handmade items (cm / kg)
-      length:  10,
-      breadth: 10,
-      height:   5,
-      weight:   0.2,
+      order_id:              order.public_order_number,
+      order_date:            new Date(order.created_at)
+                               .toISOString()
+                               .slice(0, 19)
+                               .replace("T", " "),
+      pickup_location:       process.env.SHIPROCKET_PICKUP_LOCATION || "Primary",
+      billing_customer_name: addr.fullName,
+      billing_address:       addr.addressLine,
+      billing_city:          addr.city,
+      billing_pincode:       addr.pinCode,
+      billing_state:         addr.state,
+      billing_country:       "India",
+      billing_email:         addr.email,
+      billing_phone:         addr.phone,
+      shipping_is_billing:   true,
+      payment_method:        mapPaymentMethod(order.payment_method),
+      sub_total:             order.subtotal,
+      order_items:           orderItemsPayload,
+      length:                finalLength,
+      breadth:               finalBreadth,
+      height:                finalHeight,
+      weight:                finalWeight,
     }),
   });
 }

@@ -53,7 +53,10 @@ export async function sendOrderEmail(orderId: string, trigger: EmailTrigger) {
 
     if (!order) throw new Error("Order not found for email");
 
-    const customer = order.customers as { email: string; full_name: string };
+    const customer = (order.customers as { email: string; full_name: string }) || {
+      email: (order.shipping_address_snapshot as any)?.email,
+      full_name: (order.shipping_address_snapshot as any)?.fullName,
+    };
 
     // Generate tracking token
     const { generateOrderToken } = await import("@/lib/crypto");
@@ -112,12 +115,39 @@ export async function sendOrderEmail(orderId: string, trigger: EmailTrigger) {
     // ── 3. Render and send ─────────────────────────────────────────────────
     const { subject, react } = renderEmailForTrigger(trigger, orderData);
 
-    const textFallback = `Order ${order.public_order_number} Update: ${subject}\n\nTrack your order here: https://www.cozycrafts.shop/track-order?order=${order.public_order_number}&token=${trackingToken}\n\nThank you for choosing Cozy Craft!`;
+    const isOwnerNotification = trigger === "ORDER_OWNER_NOTIFICATION";
+    let recipientEmail = customer.email;
+    let textFallback = `Order ${order.public_order_number} Update: ${subject}\n\nTrack your order here: https://www.cozycrafts.shop/track-order?order=${order.public_order_number}&token=${trackingToken}\n\nThank you for choosing Cozy Craft!`;
+
+    if (isOwnerNotification) {
+      const ownerEmail = process.env.OWNER_EMAIL?.trim();
+      if (!ownerEmail) {
+        console.error(`[send-order-email] Missing OWNER_EMAIL for trigger ${trigger}. Aborting send securely.`);
+        // Mark as failed in DB since we can't send without recipient
+        await supabase
+          .from("email_log")
+          .update({
+            status: "failed",
+            error: "Missing OWNER_EMAIL in environment variables",
+            attempts: logRow.attempts + 1,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", logRow.id);
+        return;
+      }
+      recipientEmail = ownerEmail;
+      textFallback = `New Order ${order.public_order_number} received! Log into the admin panel to view details.`;
+    }
+
+    const sender = process.env.RESEND_FROM_EMAIL?.trim();
+    if (!sender) {
+      console.warn(`[send-order-email] Missing RESEND_FROM_EMAIL in env. Fallback to hardcoded string may cause delivery failures if domain is not verified.`);
+    }
 
     const result = await resend.emails.send({
-      from: "Cozy Craft <orders@cozycrafts.shop>",
+      from: sender || "Cozy Craft <orders@cozycrafts.shop>",
       replyTo: "k7616168@gmail.com",
-      to: customer.email,
+      to: recipientEmail,
       subject,
       react,
       text: textFallback,

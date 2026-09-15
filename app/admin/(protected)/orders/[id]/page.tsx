@@ -297,16 +297,24 @@ export default async function OrderDetailPage({
                 </span>
               </div>
               
-              {order.awb_number ? (
+              {(order.shiprocket_order_id || order.awb_number) ? (
                 <>
                   <div className="flex justify-between items-center pt-2 border-t border-taupe/10">
-                    <span className="text-espresso-soft">AWB</span>
-                    <span className="font-mono text-espresso">{order.awb_number}</span>
+                    <span className="text-espresso-soft">SR Order ID</span>
+                    <span className="font-mono text-espresso">{order.shiprocket_order_id}</span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-espresso-soft">Courier</span>
-                    <span className="text-espresso">{order.courier_name}</span>
-                  </div>
+                  {order.awb_number && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-espresso-soft">AWB</span>
+                      <span className="font-mono text-espresso">{order.awb_number}</span>
+                    </div>
+                  )}
+                  {order.courier_name && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-espresso-soft">Courier</span>
+                      <span className="text-espresso">{order.courier_name}</span>
+                    </div>
+                  )}
                   {order.estimated_delivery_date && (
                     <div className="flex justify-between items-center">
                       <span className="text-espresso-soft">EDD</span>

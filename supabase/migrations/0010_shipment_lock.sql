@@ -1,0 +1,22 @@
+-- Migration 0010: Shiprocket Shipment Creation Lock
+--
+-- Adds a `shipment_lock` column used as a DB-level atomic mutex so that two
+-- simultaneous admin requests cannot both create a Shiprocket order for the
+-- same CozyCraft order (race condition prevention).
+--
+-- How it works:
+--   1. createShipmentAction does a conditional UPDATE:
+--        UPDATE orders
+--        SET    shipment_lock = 'ACQUIRING'
+--        WHERE  id = $orderId
+--        AND    shiprocket_order_id IS NULL
+--        AND    shipment_lock IS NULL
+--   2. Checks returned row count. If 0, another request won the race -> abort.
+--   3. On Shiprocket success, writes the real shiprocket_order_id and clears lock.
+--   4. On Shiprocket failure, clears the lock so the admin can retry.
+--
+-- Column semantics:
+--   NULL         = lock not held (normal resting state)
+--   'ACQUIRING'  = lock held by an in-flight createShipmentAction
+
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipment_lock text;

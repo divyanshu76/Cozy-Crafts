@@ -158,7 +158,8 @@ export const getFeaturedProducts = cache(async function getFeaturedProducts(): P
     .select(PRODUCT_SELECT)
     .eq("active", true)
     .eq("is_featured", true)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(8);
 
   if (error) { console.error('Supabase Error:', error); return []; } if (!data) return [];
   return (data as unknown as SupabaseProduct[]).map(mapToProduct);
@@ -170,7 +171,8 @@ export const getBestSellers = cache(async function getBestSellers(): Promise<Pro
     .select(PRODUCT_SELECT)
     .eq("active", true)
     .eq("is_best_seller", true)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(8);
 
   if (error) { console.error('Supabase Error:', error); return []; } if (!data) return [];
   return (data as unknown as SupabaseProduct[]).map(mapToProduct);
@@ -182,7 +184,8 @@ export const getNewArrivals = cache(async function getNewArrivals(): Promise<Pro
     .select(PRODUCT_SELECT)
     .eq("active", true)
     .eq("is_new", true)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(8);
 
   if (error) { console.error('Supabase Error:', error); return []; } if (!data) return [];
   return (data as unknown as SupabaseProduct[]).map(mapToProduct);
@@ -288,3 +291,67 @@ export const getRelatedProducts = cache(async function getRelatedProducts(produc
 
   return related;
 });
+
+export interface PaginatedProducts {
+  products: Product[];
+  total: number;
+}
+
+export const getPaginatedProducts = cache(async function getPaginatedProducts(page: number, limit: number): Promise<PaginatedProducts> {
+  const start = (page - 1) * limit;
+  const end = start + limit - 1;
+
+  const { data, count, error } = await supabaseBrowserClient
+    .from("products")
+    .select(PRODUCT_SELECT, { count: "exact" })
+    .eq("active", true)
+    .order("created_at", { ascending: false })
+    .range(start, end);
+
+  if (error || !data) {
+    console.error("getPaginatedProducts Error:", error);
+    return { products: [], total: 0 };
+  }
+  return {
+    products: (data as unknown as SupabaseProduct[]).map(mapToProduct),
+    total: count ?? 0
+  };
+});
+
+export const getPaginatedProductsByCategory = cache(async function getPaginatedProductsByCategory(
+  categorySlug: string,
+  page: number,
+  limit: number
+): Promise<PaginatedProducts> {
+  const virtual = VIRTUAL_CATEGORY_FILTERS[categorySlug];
+  const start = (page - 1) * limit;
+  const end = start + limit - 1;
+
+  let query = supabaseBrowserClient
+    .from("products")
+    .select(PRODUCT_SELECT, { count: "exact" })
+    .eq("active", true);
+
+  if (virtual) {
+    query = query.eq(virtual.column, virtual.value);
+  } else {
+    query = query.eq("categories.slug", categorySlug);
+  }
+
+  const { data, count, error } = await query
+    .order("created_at", { ascending: false })
+    .range(start, end);
+
+  if (error || !data) { 
+    console.error('Supabase Error:', error); 
+    return { products: [], total: 0 }; 
+  }
+  
+  let products = (data as unknown as SupabaseProduct[]).map(mapToProduct);
+
+  if (!virtual) {
+    products = products.filter((p) => p.category === categorySlug);
+  }
+  return { products, total: count ?? 0 };
+});
+

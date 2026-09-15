@@ -8,9 +8,11 @@ import { OrderDeliveredEmail } from "./templates/order-delivered";
 import { PaymentFailedEmail } from "./templates/payment-failed";
 import { OrderCancelledEmail } from "./templates/order-cancelled";
 import { RefundInitiatedEmail } from "./templates/refund-initiated";
+import { OwnerNewOrderEmail } from "./templates/owner-new-order";
 
 export type EmailTrigger =
   | "ORDER_CONFIRMED"
+  | "ORDER_OWNER_NOTIFICATION"
   | "ORDER_PACKED"
   | "ORDER_SHIPPED"
   | "ORDER_OUT_FOR_DELIVERY"
@@ -28,6 +30,11 @@ export function renderEmailForTrigger(
       return {
         subject: "Your Cozy Craft order is confirmed",
         react: React.createElement(OrderConfirmedEmail, { order }),
+      };
+    case "ORDER_OWNER_NOTIFICATION":
+      return {
+        subject: `🎉 New Cozy Craft Order — #${order.publicOrderNumber}`,
+        react: React.createElement(OwnerNewOrderEmail, { order }),
       };
     case "ORDER_PACKED":
       return {

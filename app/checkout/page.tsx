@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
 import { ShoppingBag, Package, Truck, Tag, AlertCircle, Check, Lock, CreditCard, Banknote } from "lucide-react";
 import { normalizeIndianPhone, isValidIndianMobile } from "@/lib/contact-utils";
+import { calculateDeliveryFee } from "@/lib/pricing";
 
 // ── Form schema ──────────────────────────────────────────────────────────────
 const checkoutFormSchema = z.object({
@@ -114,7 +115,7 @@ export default function CheckoutPage() {
     (sum, item) => sum + item.price * item.quantity,
     0
   );
-  const clientShipping = 0; // Shipping is always free
+  const clientShipping = calculateDeliveryFee(clientSubtotal);
   const clientCodFee = paymentMethod === "COD" ? 0 : 0; // Configurable COD fee
   const clientTotal = clientSubtotal + clientShipping + clientCodFee;
 
@@ -637,13 +638,13 @@ export default function CheckoutPage() {
                 <SummaryRow
                   label={
                     pricing.shippingFee === 0
-                      ? "Shipping (FREE)"
-                      : "Shipping"
+                      ? "Delivery (FREE)"
+                      : "Delivery"
                   }
                   value={
                     pricing.shippingFee === 0
                       ? "FREE"
-                      : `₹${pricing.shippingFee}`
+                      : `₹${pricing.shippingFee.toLocaleString("en-IN")}`
                   }
                   accent={pricing.shippingFee === 0}
                 />

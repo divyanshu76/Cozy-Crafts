@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getRazorpayClient } from "@/lib/razorpay/client";
 import { sendOrderEmail } from "@/lib/notifications/send-order-email";
+import { calculateDeliveryFee } from "@/lib/pricing";
 import {
   normalizeIndianPhone,
   isValidIndianMobile,
@@ -190,7 +191,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const shippingFee = 0; // Shipping is always free
+    const shippingFee = calculateDeliveryFee(subtotal);
     const codFee = paymentMethod === "COD" ? 0 : 0; // Configurable COD fee. Currently ₹0
     const total = Math.max(subtotal - discount + shippingFee + codFee, 0);
 
@@ -291,6 +292,7 @@ export async function POST(req: NextRequest) {
       // all retry logic. We await it to ensure the Vercel serverless function
       // does not terminate before the email connection succeeds.
       await sendOrderEmail(order.id, "ORDER_CONFIRMED");
+      await sendOrderEmail(order.id, "ORDER_OWNER_NOTIFICATION");
 
       return NextResponse.json({
         orderId: order.id,

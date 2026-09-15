@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import Image from "next/image"
 import { Minus, Plus, Trash2 } from "lucide-react"
+import { calculateDeliveryFee, DELIVERY_FEE_THRESHOLD } from "@/lib/pricing"
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -19,8 +20,10 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
     (sum, item) => sum + item.price * item.quantity,
     0
   );
-  // Shipping is always free — no threshold logic needed
-  const shippingAmount = 0;
+  
+  const shippingAmount = calculateDeliveryFee(subtotal);
+  const total = subtotal + shippingAmount;
+  const missingForFreeDelivery = DELIVERY_FEE_THRESHOLD - subtotal;
 
   return (
     <Drawer isOpen={isOpen} onClose={onClose} title="Your Cart" side="right" className="w-[90vw] sm:w-[450px]">
@@ -34,7 +37,14 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
           </div>
         ) : (
           <>
-
+            {/* Free Delivery Progress */}
+            <div className="bg-sage/10 border-b border-sage/20 p-3 text-center text-sm font-medium text-sage-dark">
+              {missingForFreeDelivery > 0 ? (
+                <span>Add ₹{missingForFreeDelivery.toLocaleString("en-IN")} more to get FREE delivery ✨</span>
+              ) : (
+                <span>🎉 You unlocked FREE delivery!</span>
+              )}
+            </div>
             {/* Cart Items */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-cream">
               {items.map((item) => (
@@ -108,12 +118,12 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                   <span>₹{subtotal.toLocaleString("en-IN")}</span>
                 </div>
                 <div className="flex justify-between text-sm text-espresso-soft">
-                  <span>Shipping</span>
-                  <span>Free</span>
+                  <span>Delivery</span>
+                  <span>{shippingAmount > 0 ? `₹${shippingAmount}` : "FREE"}</span>
                 </div>
                 <div className="flex justify-between text-base font-semibold text-espresso pt-2 border-t border-taupe/10 mt-2">
                   <span>Total</span>
-                  <span>₹{subtotal.toLocaleString("en-IN")}</span>
+                  <span>₹{total.toLocaleString("en-IN")}</span>
                 </div>
               </div>
               <p className="text-xs text-taupe text-center mb-4">

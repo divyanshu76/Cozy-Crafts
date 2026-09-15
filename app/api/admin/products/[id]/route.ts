@@ -76,6 +76,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       active: body.active,
       offer_enabled: body.offer_enabled ?? false,
       offer_end_at: body.offer_end_at || null,
+      // Shipping dimensions — only overwrite if explicitly provided
+      ...(body.weight  !== undefined && { weight:  body.weight }),
+      ...(body.length  !== undefined && { length:  body.length }),
+      ...(body.breadth !== undefined && { breadth: body.breadth }),
+      ...(body.height  !== undefined && { height:  body.height }),
     })
     .eq("id", productId);
 

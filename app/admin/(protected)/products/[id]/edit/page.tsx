@@ -18,6 +18,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
       sku, materials, care_instructions, personalization_available,
       is_featured, is_new, is_best_seller, active, tags, rating, review_count, 
       offer_enabled, offer_end_at, created_at, updated_at,
+      weight, length, breadth, height,
       product_images ( url, position ),
       product_variants ( id, label ),
       inventory ( stock, variant_id )
@@ -60,6 +61,11 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
     stock: baseStock,
     colors,
     images,
+    // Shipping dimensions (migration 0009) — undefined if column not yet applied
+    weight:  (product as any).weight  ?? undefined,
+    length:  (product as any).length  ?? undefined,
+    breadth: (product as any).breadth ?? undefined,
+    height:  (product as any).height  ?? undefined,
   };
 
   return (

@@ -115,6 +115,7 @@ export async function POST(req: NextRequest) {
         });
 
         await sendOrderEmail(existing.order_id, "ORDER_CONFIRMED");
+        await sendOrderEmail(existing.order_id, "ORDER_OWNER_NOTIFICATION");
 
         // TODO (launch hardening): decrement inventory stock for each order_item
         // inside a Postgres transaction or function to avoid race conditions.

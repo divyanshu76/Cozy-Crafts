@@ -82,6 +82,7 @@ export async function POST(req: NextRequest) {
 
     // Send confirmation email (idempotent — will skip if webhook already sent)
     await sendOrderEmail(payment.order_id, "ORDER_CONFIRMED");
+    await sendOrderEmail(payment.order_id, "ORDER_OWNER_NOTIFICATION");
   }
 
   return NextResponse.json({ success: true });

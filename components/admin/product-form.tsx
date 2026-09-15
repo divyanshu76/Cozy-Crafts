@@ -192,6 +192,13 @@ export function ProductForm({ initialCategories, initialData }: ProductFormProps
   };
   const [offerEndAt, setOfferEndAt] = React.useState(formatForInput(initialData?.offerEndAt));
 
+  // ── Shipping Dimensions ────────────────────
+  // Populated from initialData when editing; empty string means "use DB default"
+  const [weight,    setWeight]    = React.useState(initialData?.weight?.toString()  ?? "");
+  const [dimLength, setDimLength] = React.useState(initialData?.length?.toString()  ?? "");
+  const [breadth,   setBreadth]   = React.useState(initialData?.breadth?.toString() ?? "");
+  const [height,    setHeight]    = React.useState(initialData?.height?.toString()  ?? "");
+
   // ── State ────────────────────────────────
   const [errors, setErrors] = React.useState<FormErrors>({});
   const [saving, setSaving] = React.useState(false);
@@ -305,6 +312,11 @@ export function ProductForm({ initialCategories, initialData }: ProductFormProps
         stock: parseInt(stock, 10),
         variants: colors.map((c) => ({ label: c })),
         images: uploadedImages,
+        // Shipping dimensions — only include if the admin filled them in
+        ...(weight    && { weight:  parseFloat(weight) }),
+        ...(dimLength && { length:  parseFloat(dimLength) }),
+        ...(breadth   && { breadth: parseFloat(breadth) }),
+        ...(height    && { height:  parseFloat(height) }),
       };
 
       const res = await fetch("/api/admin/products", {
@@ -696,6 +708,64 @@ export function ProductForm({ initialCategories, initialData }: ProductFormProps
                   </Field>
                 </div>
               )}
+            </Section>
+
+            {/* 9. Shipping Details */}
+            <Section number={9} title="Shipping Details">
+              <p className="text-sm text-espresso-soft mb-4">
+                Physical dimensions used to calculate courier rates. Leave blank to use defaults
+                (0.2 kg, 10 × 10 × 5 cm). Values must be positive.
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <Field label="Weight (kg)" htmlFor="ship-weight">
+                  <Input
+                    id="ship-weight"
+                    type="number"
+                    min="0.01"
+                    max="70"
+                    step="0.01"
+                    placeholder="0.2"
+                    value={weight}
+                    onChange={(e) => setWeight(e.target.value)}
+                  />
+                </Field>
+                <Field label="Length (cm)" htmlFor="ship-length">
+                  <Input
+                    id="ship-length"
+                    type="number"
+                    min="0.1"
+                    max="150"
+                    step="0.1"
+                    placeholder="10"
+                    value={dimLength}
+                    onChange={(e) => setDimLength(e.target.value)}
+                  />
+                </Field>
+                <Field label="Breadth (cm)" htmlFor="ship-breadth">
+                  <Input
+                    id="ship-breadth"
+                    type="number"
+                    min="0.1"
+                    max="150"
+                    step="0.1"
+                    placeholder="10"
+                    value={breadth}
+                    onChange={(e) => setBreadth(e.target.value)}
+                  />
+                </Field>
+                <Field label="Height (cm)" htmlFor="ship-height">
+                  <Input
+                    id="ship-height"
+                    type="number"
+                    min="0.1"
+                    max="150"
+                    step="0.1"
+                    placeholder="5"
+                    value={height}
+                    onChange={(e) => setHeight(e.target.value)}
+                  />
+                </Field>
+              </div>
             </Section>
 
             {/* Action buttons */}

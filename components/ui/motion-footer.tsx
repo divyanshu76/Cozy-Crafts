@@ -470,9 +470,14 @@ export function CinematicFooter() {
         {/* 3. Bottom Bar / Credits (3-column grid for true center alignment) */}
         <div className={cn("relative z-20 w-full pt-8 pb-4 px-4 sm:px-12 grid grid-cols-1 sm:grid-cols-3 items-center gap-4 text-sm mt-8 border-t border-[var(--color-taupe)]/20", akayaKanadaka.className)}>
           {/* Copyright */}
-          <p className="text-center sm:text-left text-[var(--color-espresso-soft)] text-[10px] md:text-xs font-semibold tracking-widest uppercase">
-            © {new Date().getFullYear()} Cozy Craft. All rights reserved.
-          </p>
+          <div className="flex flex-col items-center sm:items-start justify-center text-center sm:text-left gap-1">
+            <p className="text-[var(--color-espresso-soft)] text-[10px] md:text-xs font-semibold tracking-widest uppercase">
+              © {new Date().getFullYear()} Cozy Craft. All rights reserved.
+            </p>
+            <p className="text-[var(--color-taupe-dark)] text-[10px] font-medium tracking-wide">
+              Website crafted by <a href="https://instagram.com/truly_divyanshu" target="_blank" rel="noopener noreferrer" className="text-[var(--color-espresso-soft)] hover:text-[var(--color-espresso)] transition-colors underline decoration-[var(--color-taupe)] underline-offset-2">Divyanshu ✦</a>
+            </p>
+          </div>
 
           {/* "Made with Love" Badge - Visually Centered */}
           <div className="flex justify-center">

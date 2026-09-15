@@ -52,6 +52,12 @@ export interface CreateProductPayload {
   offer_end_at?: string;
   // Stock
   stock: number;
+  // Shipping dimensions (migration 0009)
+  // Optional: omitting falls back to DB column defaults (0.2 kg, 10×10×5 cm)
+  weight?: number;
+  length?: number;
+  breadth?: number;
+  height?: number;
   // Variants (colors)
   variants: Array<{ label: string; price_override?: number }>;
   // Images: already uploaded, we just record them
@@ -77,6 +83,20 @@ export async function POST(req: NextRequest) {
   }
   if (body.compare_at_price !== undefined && body.compare_at_price < body.price) {
     return NextResponse.json({ error: "Compare-at price must be ≥ product price." }, { status: 400 });
+  }
+
+  // Validate optional shipping dimensions (must be positive finite numbers if provided)
+  const dimFields: Array<keyof CreateProductPayload> = ["weight", "length", "breadth", "height"];
+  for (const field of dimFields) {
+    const val = body[field] as number | undefined;
+    if (val !== undefined) {
+      if (!Number.isFinite(val) || val <= 0) {
+        return NextResponse.json(
+          { error: `${field} must be a positive number.` },
+          { status: 400 }
+        );
+      }
+    }
   }
 
   const adminDb = getSupabaseServerClient();
@@ -125,6 +145,11 @@ export async function POST(req: NextRequest) {
       active: body.active,
       offer_enabled: body.offer_enabled ?? false,
       offer_end_at: body.offer_end_at || null,
+      // Shipping dimensions — omit if not provided so the DB column default applies
+      ...(body.weight  !== undefined && { weight:  body.weight }),
+      ...(body.length  !== undefined && { length:  body.length }),
+      ...(body.breadth !== undefined && { breadth: body.breadth }),
+      ...(body.height  !== undefined && { height:  body.height }),
     })
     .select("id")
     .single();
