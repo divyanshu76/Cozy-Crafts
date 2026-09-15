@@ -105,51 +105,51 @@ export function ProductCard({ product }: ProductCardProps) {
         >
           <Heart size={16} className={cn("transition-colors", isInWishlist(product.id) ? "fill-blush text-blush" : "")} />
         </button>
-
-        {/* Quick Add and Buy Now */}
-        <div className="absolute inset-x-2.5 bottom-2.5 flex gap-1.5 opacity-100 transition-all duration-300 md:translate-y-2 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100">
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              if (product.stock === 0) return;
-              addItem({ productId: product.id, quantity: 1, name: product.name, price: product.price, image: product.images?.[0], slug: product.slug });
-              toast(`Added ${product.name} to cart`, "success");
-            }}
-            disabled={product.stock === 0}
-            className="flex-1 rounded-full bg-white py-2.5 sm:py-2 text-[11px] sm:text-xs font-semibold text-espresso shadow-sm transition-colors hover:bg-cream-soft disabled:opacity-50"
-          >
-            {product.stock === 0 ? "Out of Stock" : "Quick Add"}
-          </button>
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              if (product.stock === 0) return;
-              addItem({ productId: product.id, quantity: 1, name: product.name, price: product.price, image: product.images?.[0], slug: product.slug });
-              router.push("/checkout");
-            }}
-            disabled={product.stock === 0}
-            className="flex-1 rounded-full bg-espresso py-2.5 sm:py-2 text-[11px] sm:text-xs font-semibold text-white shadow-sm transition-all hover:bg-espresso-deep disabled:opacity-50"
-          >
-            Buy Now
-          </button>
-        </div>
       </div>
 
       {/* Product Details */}
-      <div className="flex flex-col px-1 gap-1 pb-1">
-        <h3 className="font-serif text-espresso text-[15px] sm:text-[17px] leading-snug truncate">{product.name}</h3>
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col px-1 flex-grow">
+        <h3 className="font-serif text-espresso text-[15px] sm:text-[17px] leading-snug line-clamp-2 mb-1">{product.name}</h3>
+        {product.reviewCount > 0 && (
+          <div className="flex items-center gap-1 mb-1.5">
+            <StarRating rating={product.rating} size={12} />
+            <span className="text-[11px] sm:text-xs text-espresso-soft/80">({product.reviewCount})</span>
+          </div>
+        )}
+        <div className="flex items-center gap-2 mt-auto pt-1">
           <span className="font-medium text-espresso text-[15px] sm:text-[16px]">₹{product.price}</span>
           {hasDiscount && (
             <span className="text-taupe line-through text-xs sm:text-sm">₹{product.compareAtPrice}</span>
           )}
         </div>
-        {product.reviewCount > 0 && (
-          <div className="flex items-center gap-1 mt-0.5">
-            <StarRating rating={product.rating} size={12} />
-            <span className="text-[11px] sm:text-xs text-espresso-soft/80">({product.reviewCount})</span>
-          </div>
-        )}
+      </div>
+
+      {/* Quick Add and Buy Now */}
+      <div className="flex gap-1.5 sm:gap-2 mt-1 px-1">
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            if (product.stock === 0) return;
+            addItem({ productId: product.id, quantity: 1, name: product.name, price: product.price, image: product.images?.[0], slug: product.slug });
+            toast(`Added ${product.name} to cart`, "success");
+          }}
+          disabled={product.stock === 0}
+          className="flex-1 rounded-full bg-cream border border-taupe/20 py-2 sm:py-2.5 text-[11px] sm:text-xs font-semibold text-espresso shadow-sm transition-all duration-300 hover:bg-cream-soft hover:shadow-md hover:scale-[1.02] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-espresso"
+        >
+          {product.stock === 0 ? "Out of Stock" : "Quick Add"}
+        </button>
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            if (product.stock === 0) return;
+            addItem({ productId: product.id, quantity: 1, name: product.name, price: product.price, image: product.images?.[0], slug: product.slug });
+            router.push("/checkout");
+          }}
+          disabled={product.stock === 0}
+          className="flex-1 rounded-full bg-espresso border border-transparent py-2 sm:py-2.5 text-[11px] sm:text-xs font-semibold text-white shadow-sm transition-all duration-300 hover:bg-espresso-deep hover:shadow-md hover:scale-[1.02] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-espresso"
+        >
+          Buy Now
+        </button>
       </div>
     </Link>
   )
