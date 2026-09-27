@@ -180,13 +180,54 @@ function sanitizeDimension(value: number, fallback: number): number {
   return value;
 }
 
+interface ShiprocketPickupLocation {
+  id: number;
+  pickup_location: string;
+  is_primary_location: number;
+}
+
+interface ShiprocketPickupResponse {
+  data: {
+    shipping_address: ShiprocketPickupLocation[];
+  };
+}
+
+/**
+ * Resolves the correct pickup location name from the Shiprocket account.
+ */
+async function resolvePickupLocation(): Promise<string> {
+  const configured = process.env.SHIPROCKET_PICKUP_LOCATION;
+  
+  let response: ShiprocketPickupResponse;
+  try {
+    response = await shiprocketFetch<ShiprocketPickupResponse>("/settings/company/pickup", { method: "GET" });
+  } catch (err) {
+    throw new Error("Shiprocket pickup location is not configured correctly. Please verify the configured pickup location in Shiprocket.");
+  }
+
+  const locations = response?.data?.shipping_address || [];
+
+  if (locations.length === 0) {
+    throw new Error("Shiprocket pickup location is not configured correctly. Please verify the configured pickup location in Shiprocket.");
+  }
+
+  if (configured) {
+    const match = locations.find(loc => loc.pickup_location === configured);
+    if (match) return match.pickup_location;
+    throw new Error(`Shiprocket pickup location is invalid. Configured location '${configured}' does not exist in Shiprocket.`);
+  }
+
+  // Fallback to the primary location
+  const primary = locations.find(loc => loc.is_primary_location === 1) || locations[0];
+  return primary.pickup_location;
+}
+
 // ── Public API ───────────────────────────────────────────────────────────────
 
 /**
  * Creates a Shiprocket order for a paid CozyCraft order.
  *
- * The pickup_location value ("Primary") must exactly match the name of a
- * pickup location configured in your Shiprocket panel → Settings → Pickup.
+ * The pickup_location value is dynamically resolved from the API.
  *
  * Weight/dimensions come from per-product DB values (migration 0009).
  * Old products without explicit values fall back to sensible defaults.
@@ -195,6 +236,9 @@ export async function createShiprocketOrder(
   order: OrderWithItems
 ): Promise<ShiprocketOrderResponse> {
   const addr = order.shipping_address_snapshot;
+
+  // Resolve the actual pickup location from Shiprocket
+  const pickupLocation = await resolvePickupLocation();
 
   // ── Dimension / weight calculation ─────────────────────────────────────────
   // Strategy:
@@ -258,7 +302,7 @@ export async function createShiprocketOrder(
     }
   }
 
-    return shiprocketFetch<ShiprocketOrderResponse>("/orders/create/adhoc", {
+  return shiprocketFetch<ShiprocketOrderResponse>("/orders/create/adhoc", {
     method: "POST",
     body: JSON.stringify({
       order_id:              order.public_order_number,
@@ -266,7 +310,7 @@ export async function createShiprocketOrder(
                                .toISOString()
                                .slice(0, 19)
                                .replace("T", " "),
-      pickup_location:       process.env.SHIPROCKET_PICKUP_LOCATION || "Primary",
+      pickup_location:       pickupLocation,
       channel_id:            "12153199",
       billing_customer_name: firstName,
       billing_last_name:     lastName,
