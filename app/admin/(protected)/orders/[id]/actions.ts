@@ -46,8 +46,8 @@ export async function createShipmentAction(orderId: string) {
         return { success: false, error: "COD orders must be CONFIRMED or PROCESSING to be shipped." };
       }
     } else {
-      if (order.status !== "PAID" && order.status !== "PROCESSING") {
-        return { success: false, error: "Prepaid orders must be PAID or PROCESSING to be shipped." };
+      if (order.status !== "CONFIRMED" && order.status !== "PROCESSING") {
+        return { success: false, error: "Prepaid orders must be CONFIRMED or PROCESSING to be shipped." };
       }
     }
 

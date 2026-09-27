@@ -7,7 +7,6 @@ import { OrdersFilters } from "./OrdersFilters";
 const STATUS_COLORS: Record<string, string> = {
   PENDING_PAYMENT: "bg-amber-100 text-amber-700",
   PAYMENT_FAILED: "bg-red-100 text-red-700",
-  PAID: "bg-sage/20 text-sage",
   CONFIRMED: "bg-sage/20 text-sage",
   PROCESSING: "bg-amber-100 text-amber-700",
   PACKED: "bg-amber-100 text-amber-700",
@@ -34,8 +33,18 @@ export default async function AdminOrdersPage(props: {
     )
     .order("created_at", { ascending: false });
 
+  const VALID_STATUSES = [
+    "PAID",
+    "CONFIRMED",
+    "PROCESSING",
+    "CANCELLED",
+    "REFUNDED"
+  ];
+
   if (statusFilter !== "ALL") {
     query = query.eq("status", statusFilter);
+  } else {
+    query = query.in("status", VALID_STATUSES);
   }
   if (paymentFilter !== "ALL") {
     if (paymentFilter === "PREPAID") {

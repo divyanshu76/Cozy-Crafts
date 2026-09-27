@@ -30,7 +30,6 @@ type DashboardStats = {
 const STATUS_COLORS: Record<string, string> = {
   PENDING_PAYMENT: "bg-amber-100 text-amber-700",
   PAYMENT_FAILED: "bg-red-100 text-red-700",
-  PAID: "bg-sage/20 text-sage",
   CONFIRMED: "bg-sage/20 text-sage",
   PROCESSING: "bg-amber-100 text-amber-700",
   PACKED: "bg-amber-100 text-amber-700",

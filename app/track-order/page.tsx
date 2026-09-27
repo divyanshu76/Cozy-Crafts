@@ -37,7 +37,7 @@ function getActiveStepIndex(orderStatus: string, shippingStatus: string): number
   if (shippingStatus === "OUT_FOR_DELIVERY") return 3;
   if (shippingStatus === "IN_TRANSIT" || shippingStatus === "PICKED_UP") return 2;
   if (shippingStatus === "PICKUP_SCHEDULED") return 1;
-  if (orderStatus === "CONFIRMED" || orderStatus === "PROCESSING" || orderStatus === "PAID") return 0;
+  if (orderStatus === "CONFIRMED" || orderStatus === "PROCESSING") return 0;
   return -1;
 }
 

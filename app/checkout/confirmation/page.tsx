@@ -5,7 +5,6 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 // Statuses that mean the order is genuinely confirmed/successful
 const SUCCESS_STATUSES = new Set([
-  "PAID",
   "CONFIRMED",
   "PROCESSING",
   "PACKED",

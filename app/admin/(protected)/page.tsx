@@ -28,7 +28,17 @@ async function getStats() {
         .eq("status", "pending"),
     ]);
 
-  const orders = ordersRes.data ?? [];
+  // Arrays of specific order types
+  const VALID_STATUSES = [
+    "PAID",
+    "CONFIRMED",
+    "PROCESSING",
+    "CANCELLED",
+    "REFUNDED"
+  ];
+  
+  const rawOrders = ordersRes.data ?? [];
+  const orders = rawOrders.filter((o) => VALID_STATUSES.includes(o.status));
 
   // Arrays of specific order types
   const prepaidOrders = orders.filter(isQualifyingPrepaidOrder);

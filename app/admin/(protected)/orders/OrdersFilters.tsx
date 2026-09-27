@@ -38,15 +38,9 @@ export function OrdersFilters({ currentStatus, currentPayment }: { currentStatus
           onChange={(e) => handleFilterChange("status", e.target.value)}
         >
           <option value="ALL">All Statuses</option>
-          <option value="PENDING_PAYMENT">Pending Payment</option>
-          <option value="PAYMENT_FAILED">Payment Failed</option>
-          <option value="PAID">Paid</option>
           <option value="CONFIRMED">Confirmed</option>
           <option value="PROCESSING">Processing</option>
-          <option value="PACKED">Packed</option>
-          <option value="SHIPPED">Shipped</option>
-          <option value="OUT_FOR_DELIVERY">Out for Delivery</option>
-          <option value="DELIVERED">Delivered</option>
+
           <option value="CANCELLED">Cancelled</option>
           <option value="REFUNDED">Refunded</option>
         </select>
@@ -62,6 +56,8 @@ export function OrdersFilters({ currentStatus, currentPayment }: { currentStatus
           <option value="ALL">All Payment Methods</option>
           <option value="COD">Cash on Delivery</option>
           <option value="PREPAID">Prepaid Only</option>
+          <option value="RAZORPAY">Razorpay</option>
+          <option value="CARD">Card</option>
         </select>
         <ChevronDown className="w-4 h-4 text-espresso absolute right-3 top-2.5 pointer-events-none" />
       </div>

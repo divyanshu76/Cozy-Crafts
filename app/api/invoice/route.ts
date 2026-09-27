@@ -48,7 +48,6 @@ async function isAuthorizedAdmin(): Promise<boolean> {
 /** Map order status to a badge color [R, G, B] */
 function statusColor(status: string): [number, number, number] {
   switch (status) {
-    case "PAID":
     case "CONFIRMED":
     case "PROCESSING":
     case "DELIVERED":

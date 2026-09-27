@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
         await supabase
           .from("orders")
           .update({
-            status: "PAID",
+            status: "CONFIRMED",
             payment_status: "CAPTURED",
             updated_at: new Date().toISOString(),
           })
@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
           p_order_id: existing.order_id,
           p_status_type: "order_status",
           p_old_value: "PENDING_PAYMENT",
-          p_new_value: "PAID",
+          p_new_value: "CONFIRMED",
           p_source: "razorpay_webhook",
         });
 
@@ -167,7 +167,7 @@ export async function POST(req: NextRequest) {
             updated_at: new Date().toISOString(),
           })
           .eq("id", paymentRow.order_id)
-          .neq("status", "PAID"); // never downgrade a PAID order
+          .neq("status", "CONFIRMED"); // never downgrade a CONFIRMED order
           
         await supabase.rpc("log_status_change", {
           p_order_id: paymentRow.order_id,

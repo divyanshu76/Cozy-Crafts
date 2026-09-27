@@ -14,7 +14,6 @@ import { generateOrderToken } from "@/lib/crypto";
 const ALL_STATUSES = [
   "PENDING_PAYMENT",
   "PAYMENT_FAILED",
-  "PAID",
   "CONFIRMED",
   "PROCESSING",
   "CANCELLED",
@@ -73,7 +72,7 @@ async function updateOrderStatus(orderId: string, newStatus: string) {
   // sendOrderEmail is idempotent — safe to call even if webhook already sent it.
   if (newStatus === "CANCELLED") {
     await sendOrderEmail(orderId, "ORDER_CANCELLED");
-  } else if (newStatus === "CONFIRMED" || newStatus === "PAID") {
+  } else if (newStatus === "CONFIRMED") {
     await sendOrderEmail(orderId, "ORDER_CONFIRMED");
   }
 

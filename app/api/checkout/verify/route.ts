@@ -73,12 +73,12 @@ export async function POST(req: NextRequest) {
     await supabase
       .from("orders")
       .update({
-        status: "PAID",
+        status: "CONFIRMED",
         payment_status: "CAPTURED",
         updated_at: new Date().toISOString(),
       })
       .eq("id", payment.order_id)
-      .neq("status", "PAID");
+      .neq("status", "CONFIRMED");
 
     // Send confirmation email (idempotent — will skip if webhook already sent)
     await sendOrderEmail(payment.order_id, "ORDER_CONFIRMED");

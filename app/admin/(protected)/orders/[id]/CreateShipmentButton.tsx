@@ -13,7 +13,7 @@ export function CreateShipmentButton({ orderId, orderStatus }: CreateShipmentBut
   const [isPending, startTransition] = useTransition();
   const [result, setResult] = useState<{ success: boolean; error?: string } | null>(null);
 
-  const canShip = orderStatus === "PAID" || orderStatus === "CONFIRMED";
+  const canShip = orderStatus === "CONFIRMED";
 
   const handleClick = () => {
     setResult(null);
