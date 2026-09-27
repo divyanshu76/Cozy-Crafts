@@ -10,13 +10,29 @@ import {
 } from "@/lib/shiprocket/client";
 import { revalidatePath } from "next/cache";
 
+import { cookies } from "next/headers";
+import { createServerClient } from "@supabase/ssr";
+
 async function verifyAdmin() {
-  const supabase = getSupabaseServerClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error("Unauthorized");
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", session.user.id).single();
-  if (profile?.role !== "admin") throw new Error("Unauthorized");
-  return supabase;
+  const cookieStore = await cookies();
+  const authClient = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() { return cookieStore.getAll(); },
+        setAll(c) { c.forEach(({ name, value, options }) => cookieStore.set(name, value, options)); },
+      },
+    }
+  );
+  const { data: { session } } = await authClient.auth.getSession();
+  if (!session) throw new Error("Admin authorization failed: No session");
+  
+  const { data: profile } = await authClient.from("profiles").select("role").eq("id", session.user.id).single();
+  if (profile?.role !== "admin") throw new Error("Admin authorization failed: Not an admin");
+  
+  // Return service role client for actual operations
+  return getSupabaseServerClient();
 }
 
 // ── 1. Fetch Courier Serviceability ───────────────────────────────────────
