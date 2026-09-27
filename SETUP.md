@@ -96,7 +96,7 @@ Name it exactly **`Primary`** (case-sensitive), or update `lib/shiprocket/client
 ### Shiprocket webhook
 
 1. Shiprocket → **Settings** → **API** → **Shipment Webhook Settings**
-2. URL: `https://yourdomain.com/api/webhooks/shiprocket`
+2. URL: `https://yourdomain.com/api/webhooks/shipping-updates`
 3. Copy the webhook token → add to `.env.local` as `SHIPROCKET_WEBHOOK_SECRET`
 
 > ⚠️ Shiprocket's webhook authentication format isn't fully documented publicly. The handler checks both the `x-api-key` header and a `webhook_token` body field. Verify which one Shiprocket actually sends by inspecting your first real webhook payload in the Supabase `webhook_events` table.
