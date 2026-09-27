@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { ArrowLeft, Package, Truck, FileText } from "lucide-react";
 import Link from "next/link";
 import { CreateShipmentButton } from "./CreateShipmentButton";
+import { LogisticsWorkflow } from "./LogisticsWorkflow";
 import { AdminNotesForm, AdminStatusForm } from "./AdminOrderActions";
 import { sendOrderEmail } from "@/lib/notifications/send-order-email";
 import { generateOrderToken } from "@/lib/crypto";
@@ -297,55 +298,8 @@ export default async function OrderDetailPage({
         {/* Side column */}
         <div className="space-y-6">
           
-          {/* Split Status 1: Shipping */}
-          <div className="bg-white rounded-xl border border-taupe/20 shadow-sm p-5">
-            <h2 className="font-semibold text-espresso mb-3 flex items-center gap-2">
-               <Truck className="h-4 w-4 text-sage" /> Shipping
-            </h2>
-            <div className="space-y-3 text-sm">
-              <div className="flex justify-between items-center">
-                <span className="text-espresso-soft">Status</span>
-                <span className="font-medium px-2 py-1 bg-cream-soft rounded border border-taupe/10">
-                  {order.shipping_status}
-                </span>
-              </div>
-              
-              {(order.shiprocket_order_id || order.awb_number) ? (
-                <>
-                  <div className="flex justify-between items-center pt-2 border-t border-taupe/10">
-                    <span className="text-espresso-soft">SR Order ID</span>
-                    <span className="font-mono text-espresso">{order.shiprocket_order_id}</span>
-                  </div>
-                  {order.shiprocket_shipment_id && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-espresso-soft">Shipment ID</span>
-                      <span className="font-mono text-espresso">{order.shiprocket_shipment_id}</span>
-                    </div>
-                  )}
-                  {order.awb_number && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-espresso-soft">AWB</span>
-                      <span className="font-mono text-espresso">{order.awb_number}</span>
-                    </div>
-                  )}
-                  {order.courier_name && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-espresso-soft">Courier</span>
-                      <span className="text-espresso">{order.courier_name}</span>
-                    </div>
-                  )}
-                  {order.estimated_delivery_date && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-espresso-soft">EDD</span>
-                      <span className="text-espresso">{order.estimated_delivery_date}</span>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <CreateShipmentButton orderId={order.id} orderStatus={order.status} />
-              )}
-            </div>
-          </div>
+          {/* Logistics Workflow */}
+          <LogisticsWorkflow order={order} />
 
           {/* Split Status 2: Order (Editable) */}
           <div className="bg-white rounded-xl border border-taupe/20 shadow-sm p-5">

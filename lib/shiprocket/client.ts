@@ -342,28 +342,102 @@ export async function createShiprocketOrder(
   });
 }
 
+export interface CourierCompany {
+  courier_company_id: number;
+  courier_name: string;
+  rate: number;
+  estimated_delivery_days: string | number;
+  etd: string;
+  rating: number;
+  cod: number;
+  is_surface: boolean;
+}
+
+export interface CourierServiceabilityResponse {
+  data: {
+    available_courier_companies: CourierCompany[];
+  };
+}
+
 /**
- * Assigns an AWB (Air Waybill) number to a shipment.
- * Shiprocket auto-selects the best courier unless you pass courier_id.
+ * Fetch available couriers for a Shiprocket order.
  */
-export async function assignAwb(shipmentId: number): Promise<AwbResponse> {
+export async function getCourierServiceability(orderId: string): Promise<CourierServiceabilityResponse> {
+  return shiprocketFetch<CourierServiceabilityResponse>(`/courier/serviceability/?order_id=${orderId}`, {
+    method: "GET",
+  });
+}
+
+/**
+ * Assigns an AWB (Air Waybill) number to a shipment using a specific courier.
+ */
+export async function assignAwb(shipmentId: number, courierId?: number): Promise<AwbResponse> {
+  const body: any = { shipment_id: shipmentId };
+  if (courierId) {
+    body.courier_id = courierId;
+  }
+  
   const data = await shiprocketFetch<{ response: { data: AwbResponse } }>(
     "/courier/assign/awb",
     {
       method: "POST",
-      body: JSON.stringify({ shipment_id: shipmentId }),
+      body: JSON.stringify(body),
     }
   );
   return data.response.data;
 }
 
+interface PickupResponse {
+  pickup_scheduled_date?: string;
+  pickup_token_number?: string;
+  response?: string;
+}
+
 /**
  * Schedules a pickup for a shipment.
- * Shiprocket expects an array of shipment IDs.
  */
-export async function schedulePickup(shipmentId: number): Promise<void> {
-  await shiprocketFetch("/courier/generate/pickup", {
+export async function requestPickup(shipmentId: number): Promise<PickupResponse> {
+  return shiprocketFetch<PickupResponse>("/courier/generate/pickup", {
     method: "POST",
     body: JSON.stringify({ shipment_id: [shipmentId] }),
+  });
+}
+
+interface LabelResponse {
+  label_created: number;
+  label_url: string;
+}
+
+/**
+ * Generates a shipping label for a shipment.
+ */
+export async function generateLabel(shipmentId: number): Promise<LabelResponse> {
+  return shiprocketFetch<LabelResponse>("/courier/generate/label", {
+    method: "POST",
+    body: JSON.stringify({ shipment_id: [shipmentId] }),
+  });
+}
+
+interface ManifestResponse {
+  status: number;
+  manifest_url: string;
+}
+
+/**
+ * Generates a manifest for a shipment.
+ */
+export async function generateManifest(shipmentId: number): Promise<ManifestResponse> {
+  return shiprocketFetch<ManifestResponse>("/manifests/generate", {
+    method: "POST",
+    body: JSON.stringify({ shipment_id: [shipmentId] }),
+  });
+}
+
+/**
+ * Retrieves specific shipment details.
+ */
+export async function getShipmentDetails(shipmentId: number): Promise<any> {
+  return shiprocketFetch<any>(`/shipments/${shipmentId}`, {
+    method: "GET",
   });
 }
