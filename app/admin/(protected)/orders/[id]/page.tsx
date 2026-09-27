@@ -10,15 +10,24 @@ import { AdminNotesForm, AdminStatusForm } from "./AdminOrderActions";
 import { sendOrderEmail } from "@/lib/notifications/send-order-email";
 import { generateOrderToken } from "@/lib/crypto";
 
-// Valid order_status enum values as of migration 0002
-const ALL_STATUSES = [
-  "PENDING_PAYMENT",
-  "PAYMENT_FAILED",
-  "CONFIRMED",
-  "PROCESSING",
-  "CANCELLED",
-  "REFUNDED",
-];
+function getAvailableStatuses(currentStatus: string): string[] {
+  switch (currentStatus) {
+    case "CONFIRMED":
+      return ["CONFIRMED", "PROCESSING", "CANCELLED"];
+    case "PROCESSING":
+      return ["PROCESSING", "CANCELLED"];
+    case "CANCELLED":
+      return ["CANCELLED", "REFUNDED"];
+    case "REFUNDED":
+      return ["REFUNDED"];
+    case "PAID": // Legacy support
+      return ["PAID", "CONFIRMED", "CANCELLED"];
+    default:
+      // Internal states (PENDING_PAYMENT, PAYMENT_FAILED) 
+      // shouldn't be manually transitioned by admins.
+      return [currentStatus];
+  }
+}
 
 // ── Re-validate admin role in every server action ───────────────────────────
 async function assertAdmin() {
@@ -53,6 +62,11 @@ async function updateOrderStatus(orderId: string, newStatus: string) {
     .single();
 
   const oldStatus = currentOrder?.status ?? "UNKNOWN";
+  
+  const allowed = getAvailableStatuses(oldStatus);
+  if (!allowed.includes(newStatus)) {
+    throw new Error(`Invalid status transition from ${oldStatus} to ${newStatus}`);
+  }
 
   await supabase
     .from("orders")
@@ -332,7 +346,7 @@ export default async function OrderDetailPage({
             <h2 className="font-semibold text-espresso mb-3">Order Status</h2>
             <AdminStatusForm 
               currentStatus={order.status}
-              allStatuses={ALL_STATUSES}
+              allStatuses={getAvailableStatuses(order.status)}
               updateStatusAction={async (status: string) => {
                 "use server";
                 await updateStatusAction(status);

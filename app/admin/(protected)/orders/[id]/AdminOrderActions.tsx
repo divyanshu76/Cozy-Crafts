@@ -53,6 +53,7 @@ export function AdminStatusForm({
   return (
     <form
       action={(fd: FormData) => {
+        if (allStatuses.length <= 1) return;
         startTransition(async () => {
           await updateStatusAction(fd.get("status") as string);
         });
@@ -61,7 +62,8 @@ export function AdminStatusForm({
       <select
         name="status"
         defaultValue={currentStatus}
-        className="w-full border border-taupe/30 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-sage/30"
+        disabled={allStatuses.length <= 1 || isPending}
+        className="w-full border border-taupe/30 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-sage/30 disabled:opacity-60 disabled:bg-taupe/5"
       >
         {allStatuses.map((s) => (
           <option key={s} value={s}>
@@ -71,11 +73,11 @@ export function AdminStatusForm({
       </select>
       <button
         type="submit"
-        disabled={isPending}
-        className="w-full text-sm border border-taupe/30 text-espresso px-4 py-2 rounded-lg hover:bg-cream-soft transition-colors disabled:opacity-70 flex items-center justify-center gap-2"
+        disabled={allStatuses.length <= 1 || isPending}
+        className="w-full text-sm border border-taupe/30 text-espresso px-4 py-2 rounded-lg hover:bg-cream-soft transition-colors disabled:opacity-60 flex items-center justify-center gap-2 disabled:cursor-not-allowed"
       >
         {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-        {isPending ? "Updating..." : "Update Master Status"}
+        {isPending ? "Updating..." : "Update Status"}
       </button>
     </form>
   );
