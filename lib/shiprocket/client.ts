@@ -371,20 +371,34 @@ export async function getCourierServiceability(orderId: string): Promise<Courier
 /**
  * Assigns an AWB (Air Waybill) number to a shipment using a specific courier.
  */
+interface AwbFullResponse {
+  awb_assign_status?: number;
+  message?: string;
+  response?: {
+    data?: AwbResponse;
+  };
+}
+
 export async function assignAwb(shipmentId: number, courierId?: number): Promise<AwbResponse> {
   const body: any = { shipment_id: shipmentId };
   if (courierId) {
     body.courier_id = courierId;
   }
   
-  const data = await shiprocketFetch<{ response: { data: AwbResponse } }>(
+  const rawData = await shiprocketFetch<AwbFullResponse>(
     "/courier/assign/awb",
     {
       method: "POST",
       body: JSON.stringify(body),
     }
   );
-  return data.response.data;
+
+  if (rawData.awb_assign_status === 0 || !rawData.response?.data?.awb_code) {
+    const msg = rawData.message || "AWB assignment failed with no specific message.";
+    throw new Error(`AWB Assignment failed: ${msg}`);
+  }
+
+  return rawData.response.data;
 }
 
 interface PickupResponse {

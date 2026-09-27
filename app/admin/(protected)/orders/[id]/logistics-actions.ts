@@ -54,11 +54,12 @@ export async function assignAwbAction(orderId: string, srShipmentId: string, cou
     // Check if already assigned
     const { data: order } = await supabase.from("orders").select("awb_number").eq("id", orderId).single();
     if (order?.awb_number) {
-      return { success: false, error: "AWB is already assigned." };
+      return { success: true };
     }
 
     const res = await assignAwb(Number(srShipmentId), courierId);
-    if (!res?.awb_code) throw new Error("Invalid AWB response from Shiprocket");
+    // assignAwb now throws a detailed error if AWB assignment fails
+    // or if awb_code is missing.
 
     // Persist AWB
     await supabase.from("orders").update({
