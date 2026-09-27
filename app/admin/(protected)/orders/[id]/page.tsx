@@ -316,6 +316,12 @@ export default async function OrderDetailPage({
                     <span className="text-espresso-soft">SR Order ID</span>
                     <span className="font-mono text-espresso">{order.shiprocket_order_id}</span>
                   </div>
+                  {order.shiprocket_shipment_id && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-espresso-soft">Shipment ID</span>
+                      <span className="font-mono text-espresso">{order.shiprocket_shipment_id}</span>
+                    </div>
+                  )}
                   {order.awb_number && (
                     <div className="flex justify-between items-center">
                       <span className="text-espresso-soft">AWB</span>

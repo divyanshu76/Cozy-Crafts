@@ -3,11 +3,9 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import {
   createShiprocketOrder,
-  assignAwb,
-  schedulePickup,
   type OrderWithItems,
 } from "@/lib/shiprocket/client";
-import { sendOrderEmail } from "@/lib/notifications/send-order-email";
+
 
 export async function createShipmentAction(orderId: string) {
   // ── Preflight: verify Shiprocket credentials are configured ──────────────
@@ -94,59 +92,17 @@ export async function createShipmentAction(orderId: string) {
       return { success: false, error: `Shiprocket error: ${detail}` };
     }
 
-    // ── Step 5: Assign AWB + schedule pickup ──────────────────────────────
-    let awbResult: Awaited<ReturnType<typeof assignAwb>>;
-    try {
-      awbResult = await assignAwb(srOrder.shipment_id);
-      await schedulePickup(srOrder.shipment_id);
-    } catch (postApiErr: any) {
-      // AWB/pickup failed but the SR order exists. Write what we have and
-      // clear the lock — admin can follow up in the Shiprocket panel.
-      await supabase.from("orders").update({
-        shiprocket_order_id: srOrder.order_id.toString(),
-        shiprocket_shipment_id: srOrder.shipment_id.toString(),
-        shipment_lock: null,
-        shipping_status: "PICKUP_SCHEDULED",
-        status: "PROCESSING",
-      }).eq("id", orderId);
-
-      console.error("Shiprocket AWB/pickup failed", postApiErr);
-      const detail = postApiErr?.message ?? "Unknown error";
-      return {
-        success: false,
-        error: `Order created in Shiprocket but AWB/pickup failed: ${detail}. Check Shiprocket panel.`,
-      };
-    }
-
-    // ── Step 6: Write results + clear lock atomically ─────────────────────
+    // ── Step 5: Write results + clear lock atomically ─────────────────────
     await supabase.from("orders").update({
       shiprocket_order_id:    srOrder.order_id.toString(),
       shiprocket_shipment_id: srOrder.shipment_id.toString(),
-      awb_number:             awbResult.awb_code,
-      courier_name:           awbResult.courier_name,
-      shipping_status:        "PICKUP_SCHEDULED",
-      status:                 "PROCESSING",
       shipment_lock:          null, // release lock
     }).eq("id", orderId);
 
-    await supabase.rpc("log_status_change", {
-      p_order_id:   orderId,
-      p_status_type: "shipping_status",
-      p_old_value:  "NOT_SHIPPED",
-      p_new_value:  "PICKUP_SCHEDULED",
-      p_source:     "admin_manual",
-    });
+    // Note: Do NOT change master order.status here as per Phase 3 requirements.
+    // Shipping status remains unchanged until webhook receives updates or AWB is manually generated.
 
-    await supabase.rpc("log_status_change", {
-      p_order_id:   orderId,
-      p_status_type: "order_status",
-      p_old_value:  order.status,
-      p_new_value:  "PROCESSING",
-      p_source:     "admin_manual",
-    });
-
-    await sendOrderEmail(orderId, "ORDER_PACKED");
-    return { success: true };
+    return { success: true, message: `Shipment Created! Order ID: ${srOrder.order_id}, Shipment ID: ${srOrder.shipment_id}` };
 
   } catch (err: any) {
     // Unexpected error: attempt to release the lock so the admin can retry.

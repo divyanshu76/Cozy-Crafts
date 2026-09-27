@@ -11,7 +11,7 @@ interface CreateShipmentButtonProps {
 
 export function CreateShipmentButton({ orderId, orderStatus }: CreateShipmentButtonProps) {
   const [isPending, startTransition] = useTransition();
-  const [result, setResult] = useState<{ success: boolean; error?: string } | null>(null);
+  const [result, setResult] = useState<{ success: boolean; error?: string; message?: string } | null>(null);
 
   const canShip = orderStatus === "CONFIRMED";
 
@@ -42,7 +42,7 @@ export function CreateShipmentButton({ orderId, orderStatus }: CreateShipmentBut
           )}
           <p className="leading-relaxed">
             {result.success
-              ? "Shipment created. AWB assigned and pickup scheduled."
+              ? (result.message || "Shipment created successfully.")
               : result.error}
           </p>
         </div>

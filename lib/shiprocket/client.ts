@@ -121,8 +121,22 @@ async function shiprocketFetch<T = unknown>(
   });
 
   if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Shiprocket API error (${path}): ${res.status} ${body}`);
+    const bodyText = await res.text();
+    let detail = bodyText;
+    try {
+      const parsed = JSON.parse(bodyText);
+      if (parsed.errors) {
+        const errMap = Object.entries(parsed.errors)
+          .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(", ") : v}`)
+          .join(" | ");
+        detail = `${parsed.message || "Invalid Data"} - ${errMap}`;
+      } else if (parsed.message) {
+        detail = parsed.message;
+      }
+    } catch (e) {
+      // not JSON, fallback to raw text
+    }
+    throw new Error(`Shiprocket API error (${path}): ${res.status} ${detail}`);
   }
 
   return res.json() as Promise<T>;
@@ -223,7 +237,28 @@ export async function createShiprocketOrder(
   const finalBreadth = sanitizeDimension(maxBreadth,   10);
   const finalHeight  = sanitizeDimension(totalHeight,  5);
 
-  return shiprocketFetch<ShiprocketOrderResponse>("/orders/create/adhoc", {
+  // Cast addr to any to gracefully handle future or past schema changes
+  const addrAny = addr as any;
+  const rawFirstName = addrAny.firstName || addrAny.first_name;
+  const rawLastName = addrAny.lastName || addrAny.last_name;
+
+  let firstName = "Customer";
+  let lastName = "-";
+
+  if (rawFirstName && rawLastName) {
+    // Case A: First and last name stored separately
+    firstName = rawFirstName;
+    lastName = rawLastName;
+  } else {
+    // Case B: Single full name
+    const nameParts = (addr.fullName || "").trim().split(/\s+/);
+    if (nameParts.length > 0 && nameParts[0] !== "") {
+      firstName = nameParts[0];
+      lastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : "-";
+    }
+  }
+
+    return shiprocketFetch<ShiprocketOrderResponse>("/orders/create/adhoc", {
     method: "POST",
     body: JSON.stringify({
       order_id:              order.public_order_number,
@@ -232,7 +267,9 @@ export async function createShiprocketOrder(
                                .slice(0, 19)
                                .replace("T", " "),
       pickup_location:       process.env.SHIPROCKET_PICKUP_LOCATION || "Primary",
-      billing_customer_name: addr.fullName,
+      channel_id:            "12153199",
+      billing_customer_name: firstName,
+      billing_last_name:     lastName,
       billing_address:       addr.addressLine,
       billing_city:          addr.city,
       billing_pincode:       addr.pinCode,
@@ -241,6 +278,15 @@ export async function createShiprocketOrder(
       billing_email:         addr.email,
       billing_phone:         addr.phone,
       shipping_is_billing:   true,
+      shipping_customer_name: firstName,
+      shipping_last_name:     lastName,
+      shipping_address:       addr.addressLine,
+      shipping_city:          addr.city,
+      shipping_pincode:       addr.pinCode,
+      shipping_state:         addr.state,
+      shipping_country:       "India",
+      shipping_email:         addr.email,
+      shipping_phone:         addr.phone,
       payment_method:        mapPaymentMethod(order.payment_method),
       sub_total:             order.subtotal,
       order_items:           orderItemsPayload,
