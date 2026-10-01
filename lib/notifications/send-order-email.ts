@@ -2,6 +2,7 @@ import { resend } from "@/lib/email/resend-client";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { renderEmailForTrigger, type EmailTrigger } from "@/lib/email/render";
 import type { OrderForEmail } from "@/lib/email/templates/types";
+import { render } from "@react-email/components";
 
 export async function sendOrderEmail(orderId: string, trigger: EmailTrigger) {
   const supabase = getSupabaseServerClient();
@@ -114,6 +115,7 @@ export async function sendOrderEmail(orderId: string, trigger: EmailTrigger) {
 
     // ── 3. Render and send ─────────────────────────────────────────────────
     const { subject, react } = renderEmailForTrigger(trigger, orderData);
+    const html = await render(react);
 
     const isOwnerNotification = trigger === "ORDER_OWNER_NOTIFICATION";
     let recipientEmail = customer.email;
@@ -149,7 +151,7 @@ export async function sendOrderEmail(orderId: string, trigger: EmailTrigger) {
       replyTo: "k7616168@gmail.com",
       to: recipientEmail,
       subject,
-      react,
+      html,
       text: textFallback,
     });
 

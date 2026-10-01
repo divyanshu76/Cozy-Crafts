@@ -27,10 +27,10 @@ async function verifyAdmin() {
   );
   const { data: { session } } = await authClient.auth.getSession();
   if (!session) throw new Error("Admin authorization failed: No session");
-  
+
   const { data: profile } = await authClient.from("profiles").select("role").eq("id", session.user.id).single();
   if (profile?.role !== "admin") throw new Error("Admin authorization failed: Not an admin");
-  
+
   // Return service role client for actual operations
   return getSupabaseServerClient();
 }
@@ -50,7 +50,7 @@ export async function fetchCouriersAction(orderId: string, srOrderId: string) {
 export async function assignAwbAction(orderId: string, srShipmentId: string, courierId: number) {
   try {
     const supabase = await verifyAdmin();
-    
+
     // Check if already assigned
     const { data: order } = await supabase.from("orders").select("awb_number").eq("id", orderId).single();
     if (order?.awb_number) {
@@ -88,7 +88,7 @@ export async function requestPickupAction(orderId: string, srShipmentId: string)
     }
 
     const res = await requestPickup(Number(srShipmentId));
-    
+
     // Update status to PICKUP_SCHEDULED
     await supabase.from("orders").update({
       shipping_status: "PICKUP_SCHEDULED",
@@ -115,7 +115,7 @@ export async function requestPickupAction(orderId: string, srShipmentId: string)
 export async function generateLabelAction(orderId: string, srShipmentId: string) {
   try {
     const supabase = await verifyAdmin();
-    
+
     // Check if label already generated
     const { data: order } = await supabase.from("orders").select("shiprocket_label_url").eq("id", orderId).single();
     if (order?.shiprocket_label_url) {
@@ -140,7 +140,7 @@ export async function generateLabelAction(orderId: string, srShipmentId: string)
 export async function generateManifestAction(orderId: string, srShipmentId: string) {
   try {
     const supabase = await verifyAdmin();
-    
+
     // Check if manifest already generated
     const { data: order } = await supabase.from("orders").select("shiprocket_manifest_url").eq("id", orderId).single();
     if (order?.shiprocket_manifest_url) {
