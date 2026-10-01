@@ -196,30 +196,7 @@ interface ShiprocketPickupResponse {
  * Resolves the correct pickup location name from the Shiprocket account.
  */
 async function resolvePickupLocation(): Promise<string> {
-  const configured = process.env.SHIPROCKET_PICKUP_LOCATION;
-  
-  let response: ShiprocketPickupResponse;
-  try {
-    response = await shiprocketFetch<ShiprocketPickupResponse>("/settings/company/pickup", { method: "GET" });
-  } catch (err) {
-    throw new Error("Shiprocket pickup location is not configured correctly. Please verify the configured pickup location in Shiprocket.");
-  }
-
-  const locations = response?.data?.shipping_address || [];
-
-  if (locations.length === 0) {
-    throw new Error("Shiprocket pickup location is not configured correctly. Please verify the configured pickup location in Shiprocket.");
-  }
-
-  if (configured) {
-    const match = locations.find(loc => loc.pickup_location === configured);
-    if (match) return match.pickup_location;
-    throw new Error(`Shiprocket pickup location is invalid. Configured location '${configured}' does not exist in Shiprocket.`);
-  }
-
-  // Fallback to the primary location
-  const primary = locations.find(loc => loc.is_primary_location === 1) || locations[0];
-  return primary.pickup_location;
+  return process.env.SHIPROCKET_PICKUP_LOCATION || "Primary";
 }
 
 // ── Public API ───────────────────────────────────────────────────────────────
