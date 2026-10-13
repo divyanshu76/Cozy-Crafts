@@ -5,8 +5,31 @@ import { useCartStore } from "@/hooks/useCartStore"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import Image from "next/image"
-import { Minus, Plus, Trash2 } from "lucide-react"
+import { Minus, Plus, Trash2, Image as ImageIcon } from "lucide-react"
 import { calculateDeliveryFee, DELIVERY_FEE_THRESHOLD } from "@/lib/pricing"
+
+function CartItemThumbnail({ src, alt }: { src?: string; alt: string }) {
+  const [hasError, setHasError] = React.useState(false);
+
+  if (!src || hasError) {
+    return (
+      <div className="w-full h-full bg-cream-soft flex items-center justify-center text-taupe/40 select-none">
+        <ImageIcon size={20} />
+      </div>
+    );
+  }
+
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      fill
+      className="object-cover"
+      sizes="80px"
+      onError={() => setHasError(true)}
+    />
+  );
+}
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -54,11 +77,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                     onClick={onClose}
                     className="shrink-0 relative w-20 h-24 rounded-md overflow-hidden bg-cream-soft"
                   >
-                    {item.image ? (
-                      <Image src={item.image} alt={item.name} fill className="object-cover" />
-                    ) : (
-                      <div className="w-full h-full bg-cream-soft" />
-                    )}
+                    <CartItemThumbnail src={item.image} alt={item.name} />
                   </Link>
                   <div className="flex flex-1 flex-col justify-between py-1">
                     <div className="flex justify-between items-start">

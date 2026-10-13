@@ -13,14 +13,20 @@ interface ProductGalleryProps {
 export function ProductGallery({ images, productName }: ProductGalleryProps) {
   const [activeIndex, setActiveIndex] = React.useState(0);
   const [direction, setDirection] = React.useState(0); // 1 for right, -1 for left
+  const [failedIndices, setFailedIndices] = React.useState<Set<number>>(new Set());
+
+  const handleImageError = (idx: number) => {
+    setFailedIndices((prev) => new Set(prev).add(idx));
+  };
 
   if (!images || images.length === 0) {
     return (
-      <div className="relative aspect-[4/5] w-full rounded-2xl overflow-hidden bg-cream-soft border border-taupe/20 flex flex-col items-center justify-center text-taupe">
-        <ImageIcon size={48} className="mb-4 opacity-50" />
+      <div className="relative aspect-[4/5] w-full rounded-2xl overflow-hidden bg-cream-soft border border-taupe/20 flex flex-col items-center justify-center text-taupe p-6 text-center select-none">
+        <ImageIcon size={48} className="mb-4 opacity-40" />
         <span className="font-serif text-lg text-espresso-soft">Cozy Craft</span>
+        <span className="text-xs text-taupe/70 mt-1">Photo coming soon</span>
       </div>
-    )
+    );
   }
 
   const handleNext = () => {
@@ -70,13 +76,20 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
               )}
               aria-label={`View image ${idx + 1} of ${images.length}`}
             >
-              <Image 
-                src={img} 
-                alt={`${productName} thumbnail ${idx + 1}`} 
-                fill 
-                className="object-cover" 
-                sizes="96px"
-              />
+              {!failedIndices.has(idx) ? (
+                <Image 
+                  src={img} 
+                  alt={`${productName} thumbnail ${idx + 1}`} 
+                  fill 
+                  className="object-cover" 
+                  sizes="96px"
+                  onError={() => handleImageError(idx)}
+                />
+              ) : (
+                <div className="w-full h-full bg-cream-soft flex items-center justify-center text-taupe/40">
+                  <ImageIcon size={20} />
+                </div>
+              )}
             </button>
           ))}
         </div>
@@ -98,14 +111,23 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
             }}
             className="absolute inset-0"
           >
-            <Image 
-              src={images[activeIndex]} 
-              alt={`${productName} view ${activeIndex + 1}`} 
-              fill 
-              className="object-cover"
-              priority={activeIndex === 0}
-              sizes="(min-width: 1024px) 50vw, 100vw"
-            />
+            {!failedIndices.has(activeIndex) ? (
+              <Image 
+                src={images[activeIndex]} 
+                alt={`${productName} view ${activeIndex + 1}`} 
+                fill 
+                className="object-cover"
+                priority={activeIndex === 0}
+                sizes="(min-width: 1024px) 50vw, 100vw"
+                onError={() => handleImageError(activeIndex)}
+              />
+            ) : (
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-taupe/50 bg-cream-soft select-none p-6 text-center">
+                <ImageIcon size={48} className="mb-3 opacity-40 text-taupe" />
+                <span className="font-serif text-xl text-espresso/80">Cozy Craft</span>
+                <span className="text-xs text-taupe/70 mt-1">Photo coming soon</span>
+              </div>
+            )}
           </motion.div>
         </AnimatePresence>
 

@@ -7,6 +7,7 @@ import {
   requestPickup,
   generateLabel,
   generateManifest,
+  reconcileShiprocketCancellation,
 } from "@/lib/shiprocket/client";
 import { revalidatePath } from "next/cache";
 
@@ -41,8 +42,9 @@ export async function fetchCouriersAction(orderId: string, srOrderId: string) {
     await verifyAdmin();
     const res = await getCourierServiceability(srOrderId);
     return { success: true, data: res.data.available_courier_companies };
-  } catch (err: any) {
-    return { success: false, error: err?.message || "Failed to fetch couriers" };
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : "Failed to fetch couriers";
+    return { success: false, error: errMsg };
   }
 }
 
@@ -51,8 +53,11 @@ export async function assignAwbAction(orderId: string, srShipmentId: string, cou
   try {
     const supabase = await verifyAdmin();
     
-    // Check if already assigned
-    const { data: order } = await supabase.from("orders").select("awb_number").eq("id", orderId).single();
+    // Check if order is cancelled or already assigned
+    const { data: order } = await supabase.from("orders").select("awb_number, status").eq("id", orderId).single();
+    if (order?.status === "CANCELLED") {
+      return { success: false, error: "Cannot assign AWB: Order is CANCELLED." };
+    }
     if (order?.awb_number) {
       return { success: true };
     }
@@ -70,8 +75,9 @@ export async function assignAwbAction(orderId: string, srShipmentId: string, cou
 
     revalidatePath(`/admin/orders/${orderId}`);
     return { success: true };
-  } catch (err: any) {
-    return { success: false, error: err?.message || "Failed to assign AWB" };
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : "Failed to assign AWB";
+    return { success: false, error: errMsg };
   }
 }
 
@@ -80,8 +86,9 @@ export async function requestPickupAction(orderId: string, srShipmentId: string)
   try {
     const supabase = await verifyAdmin();
 
-    // Verify AWB exists and pickup isn't already requested
-    const { data: order } = await supabase.from("orders").select("awb_number, shipping_status").eq("id", orderId).single();
+    // Verify AWB exists, order is not cancelled, and pickup isn't already requested
+    const { data: order } = await supabase.from("orders").select("awb_number, shipping_status, status").eq("id", orderId).single();
+    if (order?.status === "CANCELLED") return { success: false, error: "Cannot request pickup: Order is CANCELLED." };
     if (!order?.awb_number) return { success: false, error: "AWB must be assigned before requesting pickup." };
     if (order.shipping_status === "PICKUP_SCHEDULED" || order.shipping_status === "PICKED_UP") {
       return { success: false, error: "Pickup is already requested." };
@@ -106,8 +113,9 @@ export async function requestPickupAction(orderId: string, srShipmentId: string)
 
     revalidatePath(`/admin/orders/${orderId}`);
     return { success: true };
-  } catch (err: any) {
-    return { success: false, error: err?.message || "Failed to request pickup" };
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : "Failed to request pickup";
+    return { success: false, error: errMsg };
   }
 }
 
@@ -131,8 +139,9 @@ export async function generateLabelAction(orderId: string, srShipmentId: string)
 
     revalidatePath(`/admin/orders/${orderId}`);
     return { success: true, url: res.label_url };
-  } catch (err: any) {
-    return { success: false, error: err?.message || "Failed to generate label" };
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : "Failed to generate label";
+    return { success: false, error: errMsg };
   }
 }
 
@@ -156,7 +165,81 @@ export async function generateManifestAction(orderId: string, srShipmentId: stri
 
     revalidatePath(`/admin/orders/${orderId}`);
     return { success: true, url: res.manifest_url };
-  } catch (err: any) {
-    return { success: false, error: err?.message || "Failed to generate manifest" };
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : "Failed to generate manifest";
+    return { success: false, error: errMsg };
+  }
+}
+
+// ── 6. Reconcile / Retry Shiprocket Cancellation ──────────────────────────
+export async function reconcileShiprocketCancelAction(orderId: string) {
+  try {
+    const supabase = await verifyAdmin();
+
+    const { data: order } = await supabase
+      .from("orders")
+      .select("id, status, shiprocket_order_id, shiprocket_shipment_id, shipping_status, internal_notes")
+      .eq("id", orderId)
+      .single();
+
+    if (!order) return { success: false, error: "Order not found." };
+    if (order.status !== "CANCELLED") {
+      return { success: false, error: "Only locally cancelled orders can be reconciled." };
+    }
+    if (!order.shiprocket_order_id) {
+      return { success: false, error: "Order does not have a linked Shiprocket order ID." };
+    }
+
+    const shipmentId = order.shiprocket_shipment_id ? Number(order.shiprocket_shipment_id) : null;
+    const result = await reconcileShiprocketCancellation(order.shiprocket_order_id, shipmentId);
+
+    let srCancelStatus: string;
+    let srCancelNote: string;
+
+    switch (result.status) {
+      case "cancelled":
+        srCancelStatus = "SR_CANCELLED";
+        srCancelNote = `Reconciliation: Shiprocket order ${order.shiprocket_order_id} cancelled successfully. ${result.message}`;
+        await supabase.from("orders").update({ shipping_status: "CANCELLED" }).eq("id", orderId);
+        break;
+      case "already_cancelled":
+        srCancelStatus = "SR_ALREADY_CANCELLED";
+        srCancelNote = `Reconciliation: Shiprocket order ${order.shiprocket_order_id} was already cancelled. ${result.message}`;
+        await supabase.from("orders").update({ shipping_status: "CANCELLED" }).eq("id", orderId);
+        break;
+      case "not_cancellable":
+        srCancelStatus = "SR_NOT_CANCELLABLE";
+        srCancelNote = `Reconciliation: Shiprocket order ${order.shiprocket_order_id} cannot be cancelled automatically (${result.message}). Please cancel manually in Shiprocket dashboard.`;
+        break;
+      case "unknown":
+        srCancelStatus = "SR_CANCEL_UNKNOWN";
+        srCancelNote = `Reconciliation: Shiprocket outcome still ambiguous (${result.message}). Please check Shiprocket dashboard.`;
+        break;
+      case "error":
+      default:
+        srCancelStatus = "SR_CANCEL_FAILED";
+        srCancelNote = `Reconciliation: Shiprocket cancellation attempt failed (${result.message}). Check Shiprocket dashboard.`;
+    }
+
+    await supabase.rpc("log_status_change", {
+      p_order_id: orderId,
+      p_status_type: "shipping_status",
+      p_old_value: order.shipping_status,
+      p_new_value: srCancelStatus,
+      p_source: "admin_shiprocket_reconcile",
+    });
+
+    const existingNotes = order.internal_notes ?? "";
+    const separator = existingNotes ? "\n\n" : "";
+    await supabase
+      .from("orders")
+      .update({ internal_notes: `${existingNotes}${separator}[${new Date().toISOString()}] ${srCancelNote}` })
+      .eq("id", orderId);
+
+    revalidatePath(`/admin/orders/${orderId}`);
+    return { success: true, status: result.status, message: srCancelNote };
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : "Reconciliation failed.";
+    return { success: false, error: errMsg };
   }
 }

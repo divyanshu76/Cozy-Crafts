@@ -167,7 +167,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const productId = resolvedParams.id;
   const adminDb = getSupabaseServerClient();
 
-  // 1. Fetch images to delete from Storage
+  // 1. Fetch image paths to delete from Storage (kept in memory)
   const { data: images } = await adminDb
     .from("product_images")
     .select("url")
@@ -178,12 +178,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     return parts.length > 1 ? parts[1] : null;
   }).filter(Boolean) as string[] || [];
 
-  if (pathsToDelete.length > 0) {
-    const { error: storageError } = await adminDb.storage.from("product-images").remove(pathsToDelete);
-    if (storageError) console.error("Failed to delete images from storage:", storageError);
-  }
-
-  // 2. Delete product from DB (Cascades to images, variants, inventory)
+  // 2. Delete product from DB FIRST (Cascades to images, variants, inventory)
   const { error } = await adminDb.from("products").delete().eq("id", productId);
   if (error) {
     console.error("Product delete error:", error);
@@ -191,6 +186,12 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       return NextResponse.json({ error: "Cannot delete product because it has been ordered by customers. Please set the product to 'Inactive' instead to preserve order history." }, { status: 409 });
     }
     return NextResponse.json({ error: error.message || "Failed to delete product." }, { status: 500 });
+  }
+
+  // 3. Only remove files from Storage after DB deletion is confirmed
+  if (pathsToDelete.length > 0) {
+    const { error: storageError } = await adminDb.storage.from("product-images").remove(pathsToDelete);
+    if (storageError) console.error("Failed to delete images from storage:", storageError);
   }
 
   revalidatePath("/", "layout");

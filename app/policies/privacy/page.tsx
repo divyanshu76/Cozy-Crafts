@@ -28,8 +28,8 @@ export default function PrivacyPolicyPage() {
           <h2 className="text-lg font-semibold text-[var(--color-espresso)]">Contact</h2>
           <p>
             Questions about your data — email{" "}
-            <a href="mailto:k7616168@gmail.com" className="underline hover:text-[var(--color-espresso)]">
-              k7616168@gmail.com
+            <a href="mailto:contact@cozycrafts.shop" className="underline hover:text-[var(--color-espresso)]">
+              contact@cozycrafts.shop
             </a>.
           </p>
         </section>

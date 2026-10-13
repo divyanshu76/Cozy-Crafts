@@ -10,9 +10,32 @@ import { useCartStore } from "@/hooks/useCartStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
-import { ShoppingBag, Package, Truck, Tag, AlertCircle, Check, Lock, CreditCard, Banknote } from "lucide-react";
+import { ShoppingBag, Package, Truck, Tag, AlertCircle, Check, Lock, CreditCard, Banknote, Image as ImageIcon } from "lucide-react";
 import { normalizeIndianPhone, isValidIndianMobile } from "@/lib/contact-utils";
 import { calculateDeliveryFee } from "@/lib/pricing";
+
+function CheckoutItemThumbnail({ src, alt }: { src?: string; alt: string }) {
+  const [hasError, setHasError] = React.useState(false);
+
+  if (!src || hasError) {
+    return (
+      <div className="w-full h-full bg-cream-soft flex items-center justify-center text-taupe/40 select-none">
+        <ImageIcon size={18} />
+      </div>
+    );
+  }
+
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      fill
+      className="object-cover"
+      sizes="64px"
+      onError={() => setHasError(true)}
+    />
+  );
+}
 
 // ── Form schema ──────────────────────────────────────────────────────────────
 const checkoutFormSchema = z.object({
@@ -296,7 +319,14 @@ export default function CheckoutPage() {
       {/* Background Watermark */}
       <div className="fixed inset-0 pointer-events-none z-[-1] flex items-center justify-center overflow-hidden">
         <div className="relative w-[120vw] h-[120vh] md:w-[800px] md:h-[800px] opacity-[0.03]">
-          <Image src="/assets/logo.png" alt="" fill className="object-contain" priority />
+          <Image
+            src="/assets/logo.png"
+            alt=""
+            fill
+            className="object-contain"
+            priority
+            sizes="(min-width: 768px) 800px, 120vw"
+          />
         </div>
       </div>
 
@@ -595,14 +625,7 @@ export default function CheckoutPage() {
                     className="flex items-start gap-4"
                   >
                     <div className="w-16 h-16 rounded-xl bg-cream-soft border border-taupe/20 shrink-0 overflow-hidden relative">
-                      {item.image && (
-                        <Image
-                          src={item.image}
-                          alt={item.name}
-                          fill
-                          className="object-cover"
-                        />
-                      )}
+                      <CheckoutItemThumbnail src={item.image} alt={item.name} />
                     </div>
                     <div className="flex-1 min-w-0 pt-1">
                       <p className="text-sm font-medium text-espresso truncate">

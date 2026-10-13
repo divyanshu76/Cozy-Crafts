@@ -38,7 +38,10 @@ export function WishlistGrid({ itemIds }: { itemIds: string[] }) {
           description: p.description ?? "",
           price: p.price,
           compareAtPrice: p.compare_at_price ?? undefined,
-          images: [...(p.images ?? [])].sort((a: any, b: any) => a.position - b.position).map((img: any) => img.url),
+          images: [...(p.images ?? [])]
+            .sort((a: any, b: any) => a.position - b.position)
+            .map((img: any) => img.url)
+            .filter((url: string) => url && !url.includes("0ea63361-c383-4dc0-851d-a534badb47e4")),
           category: p.categories?.slug ?? "",
           tags: p.tags ?? [],
           stock: (p.inventory ?? []).reduce((s: number, inv: any) => s + inv.stock, 0),

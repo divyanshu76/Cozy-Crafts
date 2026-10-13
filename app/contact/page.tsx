@@ -29,20 +29,20 @@ export default function ContactPage() {
     <div className="mx-auto max-w-2xl px-6 py-20 text-center">
       <h1 className="font-eagle-lake text-4xl text-[var(--color-espresso)] sm:text-5xl">Get in Touch</h1>
       <p className="mt-4 text-[var(--color-espresso-soft)]">
-        Questions about an order, a custom request, or just want to say hi — we'd love to hear from you.
+        Questions about an order, a custom request, or just want to say hi — we&apos;d love to hear from you.
       </p>
       <div className="mt-10 flex flex-col items-center gap-4 text-[var(--color-espresso-soft)]">
         <a
-          href="mailto:k7616168@gmail.com"
+          href="mailto:contact@cozycrafts.shop"
           className="inline-flex items-center gap-2 hover:text-[var(--color-espresso)] transition-colors"
         >
-          <Mail className="h-4 w-4" strokeWidth={1.5} /> k7616168@gmail.com
+          <Mail className="h-4 w-4" strokeWidth={1.5} /> contact@cozycrafts.shop
         </a>
         <a
-          href="tel:+919999999999"
+          href="tel:+916386702779"
           className="inline-flex items-center gap-2 hover:text-[var(--color-espresso)] transition-colors"
         >
-          <Phone className="h-4 w-4" strokeWidth={1.5} /> +91 99999 99999
+          <Phone className="h-4 w-4" strokeWidth={1.5} /> +91 6386702779
         </a>
         <p className="inline-flex items-center gap-2">
           <MapPin className="h-4 w-4" strokeWidth={1.5} /> Ramaipatti, Mirzapur, 231001, Uttar Pradesh, India

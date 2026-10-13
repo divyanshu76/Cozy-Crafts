@@ -44,7 +44,14 @@ function mapToProduct(p: SupabaseProduct): Product {
     compareAtPrice: p.compare_at_price ?? undefined,
     images: p.images
       .sort((a, b) => a.position - b.position)
-      .map((img) => img.url),
+      .map((img) => img.url)
+      .filter((url) => {
+        if (!url || typeof url !== "string") return false;
+        // Filter out known deleted storage paths (such as orphaned bucket objects)
+        // to prevent upstream Next.js image optimizer 400 NoSuchKey errors.
+        if (url.includes("0ea63361-c383-4dc0-851d-a534badb47e4")) return false;
+        return true;
+      }),
     category: p.categories?.slug ?? p.category_id ?? "",
     tags: p.tags ?? [],
     stock: totalStock,

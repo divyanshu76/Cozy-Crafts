@@ -10,6 +10,7 @@ import { LogisticsWorkflow } from "./LogisticsWorkflow";
 import { AdminNotesForm, AdminStatusForm } from "./AdminOrderActions";
 import { sendOrderEmail } from "@/lib/notifications/send-order-email";
 import { generateOrderToken } from "@/lib/crypto";
+import { cancelShiprocketOrder } from "@/lib/shiprocket/client";
 
 function getAvailableStatuses(currentStatus: string): string[] {
   switch (currentStatus) {
@@ -55,15 +56,20 @@ async function updateOrderStatus(orderId: string, newStatus: string) {
   await assertAdmin();
   const supabase = getSupabaseServerClient();
 
-  // Fetch current status for audit log
+  // Fetch current order state including Shiprocket IDs for cancellation sync
   const { data: currentOrder } = await supabase
     .from("orders")
-    .select("status")
+    .select("status, shiprocket_order_id, shiprocket_shipment_id")
     .eq("id", orderId)
     .single();
 
   const oldStatus = currentOrder?.status ?? "UNKNOWN";
-  
+
+  // Guard: prevent re-shipping an already-cancelled order
+  if (oldStatus === "CANCELLED" && newStatus !== "REFUNDED") {
+    throw new Error(`Order is already CANCELLED. Only REFUNDED transition is allowed.`);
+  }
+
   const allowed = getAvailableStatuses(oldStatus);
   if (!allowed.includes(newStatus)) {
     throw new Error(`Invalid status transition from ${oldStatus} to ${newStatus}`);
@@ -74,7 +80,7 @@ async function updateOrderStatus(orderId: string, newStatus: string) {
     .update({ status: newStatus, updated_at: new Date().toISOString() })
     .eq("id", orderId);
 
-  // Log the status change for audit trail
+  // Log the order status change
   await supabase.rpc("log_status_change", {
     p_order_id: orderId,
     p_status_type: "order_status",
@@ -82,6 +88,80 @@ async function updateOrderStatus(orderId: string, newStatus: string) {
     p_new_value: newStatus,
     p_source: "admin_manual",
   });
+
+  // ── Shiprocket cancellation sync ──────────────────────────────────────────
+  // Only attempt when transitioning to CANCELLED and a Shiprocket order exists.
+  // We do this AFTER the local status update so the order is always locally
+  // cancelled even if the Shiprocket call fails. The outcome is recorded in
+  // order_status_history so the admin can see the real carrier state.
+  if (newStatus === "CANCELLED" && currentOrder?.shiprocket_order_id) {
+    const srOrderId = currentOrder.shiprocket_order_id;
+    let srCancelNote: string;
+    let srCancelStatus: string;
+
+    try {
+      const result = await cancelShiprocketOrder(srOrderId);
+
+      switch (result.status) {
+        case "cancelled":
+          srCancelNote = `Shiprocket order ${srOrderId} cancelled successfully. ${result.message}`;
+          srCancelStatus = "SR_CANCELLED";
+          await supabase
+            .from("orders")
+            .update({ shipping_status: "CANCELLED" })
+            .eq("id", orderId);
+          break;
+        case "already_cancelled":
+          srCancelNote = `Shiprocket order ${srOrderId} was already cancelled on Shiprocket. ${result.message}`;
+          srCancelStatus = "SR_ALREADY_CANCELLED";
+          await supabase
+            .from("orders")
+            .update({ shipping_status: "CANCELLED" })
+            .eq("id", orderId);
+          break;
+        case "not_cancellable":
+          srCancelNote = `⚠️ Shiprocket order ${srOrderId} could NOT be cancelled automatically (${result.message}). Please cancel manually in the Shiprocket dashboard.`;
+          srCancelStatus = "SR_NOT_CANCELLABLE";
+          break;
+        case "unknown":
+          srCancelNote = `⚠️ Shiprocket cancellation outcome is ambiguous for order ${srOrderId}: ${result.message}. Do not repeat cancellation blindly; reconcile in Shiprocket dashboard first.`;
+          srCancelStatus = "SR_CANCEL_UNKNOWN";
+          break;
+        case "error":
+        default:
+          srCancelNote = `⚠️ Shiprocket cancellation failed for order ${srOrderId}: ${result.message}. Please verify status in Shiprocket dashboard before retrying.`;
+          srCancelStatus = "SR_CANCEL_FAILED";
+      }
+    } catch (srErr: unknown) {
+      // Unexpected error (e.g. timeout) — record as unknown outcome
+      const errMsg = srErr instanceof Error ? srErr.message : "timeout or network error";
+      srCancelNote = `⚠️ Shiprocket cancellation outcome unknown for order ${srOrderId} (${errMsg}). Please verify and cancel manually in Shiprocket if needed.`;
+      srCancelStatus = "SR_CANCEL_UNKNOWN";
+    }
+
+    // Log Shiprocket cancellation result as a separate history entry
+    await supabase.rpc("log_status_change", {
+      p_order_id: orderId,
+      p_status_type: "shipping_status",
+      p_old_value: oldStatus,
+      p_new_value: srCancelStatus,
+      p_source: "admin_shiprocket_cancel",
+    });
+
+    // Persist the note to internal_notes so it's visible in the admin UI
+    // Append rather than overwrite existing notes
+    const { data: noteRow } = await supabase
+      .from("orders")
+      .select("internal_notes")
+      .eq("id", orderId)
+      .single();
+    const existingNotes = noteRow?.internal_notes ?? "";
+    const separator = existingNotes ? "\n\n" : "";
+    await supabase
+      .from("orders")
+      .update({ internal_notes: `${existingNotes}${separator}[${new Date().toISOString()}] ${srCancelNote}` })
+      .eq("id", orderId);
+  }
 
   // Send appropriate email notification based on new status.
   // sendOrderEmail is idempotent — safe to call even if webhook already sent it.
@@ -222,8 +302,8 @@ export default async function OrderDetailPage({
                 </div>
               )}
               <div className="flex justify-between text-espresso-soft">
-                <span>Shipping</span>
-                <span>{order.shipping_fee === 0 ? "Free" : `₹${order.shipping_fee}`}</span>
+                <span>Customer Shipping Charge</span>
+                <span>{order.shipping_fee === 0 ? "Free" : `₹${Number(order.shipping_fee).toLocaleString("en-IN")}`}</span>
               </div>
               <div className="flex justify-between font-bold text-espresso pt-2 border-t border-taupe/10">
                 <span>Total</span>

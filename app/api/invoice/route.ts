@@ -247,8 +247,8 @@ export async function GET(req: NextRequest) {
         doc.setFontSize(8);
         doc.setTextColor(107, 86, 72);
         doc.text("Little Things, Made With Love.", 14, 29);
-        doc.text("hello@cozycrafts.shop", 14, 34);
-        doc.text("www.cozycrafts.shop", 14, 39);
+        doc.text("contact@cozycrafts.shop", 14, 34);
+        doc.text("www.cozycrafts.shop  |  @cozycraftss.in", 14, 39);
       }
     } catch {
       logoEmbedded = false;
@@ -263,7 +263,7 @@ export async function GET(req: NextRequest) {
       doc.setFontSize(8);
       doc.setTextColor(107, 86, 72);
       doc.text("Little Things, Made With Love.", 14, 25);
-      doc.text("hello@cozycrafts.shop | www.cozycrafts.shop", 14, 30);
+      doc.text("contact@cozycrafts.shop  |  www.cozycrafts.shop  |  @cozycraftss.in", 14, 30);
     }
 
     // ── STEP 4: TAX INVOICE title + meta (header, right column) ───────────
@@ -401,6 +401,7 @@ export async function GET(req: NextRequest) {
 
     autoTable(doc, {
       startY: tableStartY,
+      margin: { left: 14, right: 14 },
       head: [["#", "Item Description", "Qty", "Unit Price", "Amount"]],
       body: tableData,
       theme: "plain",
@@ -427,7 +428,7 @@ export async function GET(req: NextRequest) {
       },
       columnStyles: {
         0: { cellWidth: 10, halign: "center" },
-        1: { cellWidth: 97 },
+        1: { cellWidth: 90 },
         2: { cellWidth: 14, halign: "center" },
         3: { cellWidth: 34, halign: "right" },
         4: { cellWidth: 34, halign: "right" },

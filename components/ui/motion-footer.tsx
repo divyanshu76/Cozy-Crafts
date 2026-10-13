@@ -445,11 +445,11 @@ export function CinematicFooter() {
 
             {/* Contact Details */}
             <div className={cn("mt-1 sm:mt-2 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs sm:text-sm text-[var(--color-espresso-soft)]", akayaKanadaka.className)}>
-              <a href="mailto:k7616168@gmail.com" className="inline-flex items-center gap-1.5 hover:text-[var(--color-espresso)] transition-colors">
-                <Mail className="h-4 w-4 text-[var(--color-sage-deep)]" strokeWidth={1.5} /> k7616168@gmail.com
+              <a href="mailto:contact@cozycrafts.shop" className="inline-flex items-center gap-1.5 hover:text-[var(--color-espresso)] transition-colors">
+                <Mail className="h-4 w-4 text-[var(--color-sage-deep)]" strokeWidth={1.5} /> contact@cozycrafts.shop
               </a>
-              <a href="tel:+919999999999" className="inline-flex items-center gap-1.5 hover:text-[var(--color-espresso)] transition-colors">
-                <Phone className="h-4 w-4 text-[var(--color-sage-deep)]" strokeWidth={1.5} /> +91 99999 99999
+              <a href="tel:+916386702779" className="inline-flex items-center gap-1.5 hover:text-[var(--color-espresso)] transition-colors">
+                <Phone className="h-4 w-4 text-[var(--color-sage-deep)]" strokeWidth={1.5} /> +91 6386702779
               </a>
               <span className="inline-flex items-center gap-1.5">
                 <MapPin className="h-4 w-4 text-[var(--color-sage-deep)]" strokeWidth={1.5} /> Ramaipatti, Mirzapur, 231001, UP, India

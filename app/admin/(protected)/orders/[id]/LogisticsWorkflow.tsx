@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Loader2, Truck, FileText, CheckCircle2, AlertCircle, PackageCheck, Printer } from "lucide-react";
+import { Loader2, Truck, FileText, CheckCircle2, AlertCircle, PackageCheck, Printer, RefreshCw } from "lucide-react";
 import {
   fetchCouriersAction,
   assignAwbAction,
   requestPickupAction,
   generateLabelAction,
   generateManifestAction,
+  reconcileShiprocketCancelAction,
 } from "./logistics-actions";
 import { CreateShipmentButton } from "./CreateShipmentButton";
 
@@ -108,6 +109,25 @@ export function LogisticsWorkflow({ order }: { order: any }) {
     });
   };
 
+  const handleReconcileCancel = () => {
+    setError(null);
+    setMessage(null);
+    if (!confirm("Reconcile Shiprocket status? This will query carrier state before attempting any action.")) return;
+    startTransition(async () => {
+      const res = await reconcileShiprocketCancelAction(order.id);
+      if (res.success) {
+        setMessage(res.message || "Carrier status reconciled.");
+      } else {
+        setError(res.error || "Failed to reconcile carrier status.");
+      }
+    });
+  };
+
+  // Find newest carrier cancellation entry from order history by timestamp
+  const latestSrCancel = (order.order_status_history as Array<{ source: string; new_value: string; created_at?: string }> | undefined)
+    ?.filter((h) => h.source === "admin_shiprocket_cancel" || h.source === "admin_shiprocket_reconcile")
+    .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())[0];
+
   return (
     <div className="bg-white rounded-xl border border-taupe/20 shadow-sm p-5">
       <h2 className="font-semibold text-espresso mb-3 flex items-center gap-2">
@@ -137,9 +157,65 @@ export function LogisticsWorkflow({ order }: { order: any }) {
           </div>
         )}
 
+        {order.status === "CANCELLED" && (
+          <div className="flex items-start gap-2 p-3 rounded-lg text-xs bg-amber-50 border border-amber-200 text-amber-800">
+            <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-amber-600" />
+            <p className="leading-relaxed">
+              <strong>Order is CANCELLED locally.</strong> Shipping and fulfillment actions are locked to prevent dispatch.
+            </p>
+          </div>
+        )}
+
         {/* Step 1: Shiprocket Order */}
         {!hasShiprocketOrder ? (
           <CreateShipmentButton orderId={order.id} orderStatus={order.status} />
+        ) : order.status === "CANCELLED" ? (
+          <div className="space-y-3 pt-2">
+            <div className="flex justify-between items-center">
+              <span className="text-espresso-soft">SR Order ID</span>
+              <span className="font-mono text-espresso">{order.shiprocket_order_id}</span>
+            </div>
+            {order.shiprocket_shipment_id && (
+              <div className="flex justify-between items-center">
+                <span className="text-espresso-soft">Shipment ID</span>
+                <span className="font-mono text-espresso">{order.shiprocket_shipment_id}</span>
+              </div>
+            )}
+            {order.awb_number && (
+              <div className="flex justify-between items-center">
+                <span className="text-espresso-soft">AWB Number</span>
+                <span className="font-mono text-espresso">{order.awb_number}</span>
+              </div>
+            )}
+            {latestSrCancel && (
+              <div className="pt-2 border-t border-taupe/10 space-y-2">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-espresso-soft">Carrier Cancellation</span>
+                  <span
+                    className={`font-mono px-2 py-0.5 rounded text-[11px] ${
+                      latestSrCancel.new_value === "SR_CANCELLED" || latestSrCancel.new_value === "SR_ALREADY_CANCELLED"
+                        ? "bg-sage/15 text-sage font-medium"
+                        : latestSrCancel.new_value === "SR_NOT_CANCELLABLE"
+                        ? "bg-amber-100 text-amber-800 font-medium"
+                        : "bg-red-50 text-red-700 font-medium"
+                    }`}
+                  >
+                    {latestSrCancel.new_value}
+                  </span>
+                </div>
+                {(latestSrCancel.new_value === "SR_CANCEL_UNKNOWN" || latestSrCancel.new_value === "SR_CANCEL_FAILED") && (
+                  <button
+                    onClick={handleReconcileCancel}
+                    disabled={isPending}
+                    className="w-full mt-2 py-1.5 px-3 rounded-lg bg-cream text-espresso text-xs hover:bg-cream-soft border border-taupe/20 transition-colors flex items-center justify-center gap-1.5"
+                  >
+                    {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                    Reconcile Carrier Status
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         ) : (
           <div className="space-y-3 pt-2">
             <div className="flex justify-between items-center">

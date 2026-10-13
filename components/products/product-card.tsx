@@ -2,7 +2,7 @@
 import * as React from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { Heart, ShoppingBag, Image as ImageIcon } from "lucide-react"
+import { Heart, Image as ImageIcon } from "lucide-react"
 import { Product } from "@/types/product"
 import { useCartStore } from "@/hooks/useCartStore"
 import { useWishlistStore } from "@/hooks/useWishlistStore"
@@ -18,6 +18,8 @@ interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
   const [isHovered, setIsHovered] = React.useState(false);
+  const [imgError, setImgError] = React.useState(false);
+  const [altImgError, setAltImgError] = React.useState(false);
   const addItem = useCartStore(state => state.addItem);
   const { isInWishlist, toggleItem } = useWishlistStore();
   const { toast } = useToast();
@@ -57,7 +59,7 @@ export function ProductCard({ product }: ProductCardProps) {
     >
       {/* Image Container */}
       <div className="relative aspect-[4/5] w-full overflow-hidden rounded-xl bg-cream-soft">
-        {product.images && product.images.length > 0 ? (
+        {product.images && product.images.length > 0 && !imgError ? (
           <>
             <Image
               src={product.images[0]}
@@ -65,11 +67,12 @@ export function ProductCard({ product }: ProductCardProps) {
               fill
               className={cn(
                 "object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]",
-                isHovered && product.images[1] ? "opacity-0" : "opacity-100"
+                isHovered && product.images[1] && !altImgError ? "opacity-0" : "opacity-100"
               )}
               sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
+              onError={() => setImgError(true)}
             />
-            {product.images[1] && (
+            {product.images[1] && !altImgError && (
               <Image
                 src={product.images[1]}
                 alt={`${product.name} alternate view`}
@@ -79,13 +82,15 @@ export function ProductCard({ product }: ProductCardProps) {
                   isHovered ? "opacity-100" : "opacity-0"
                 )}
                 sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
+                onError={() => setAltImgError(true)}
               />
             )}
           </>
         ) : (
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-taupe/50">
-            <ImageIcon size={32} className="mb-2" />
-            <span className="text-xs font-serif">Cozy Craft</span>
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-taupe/50 bg-cream-soft select-none p-4 text-center">
+            <ImageIcon size={32} className="mb-2 opacity-40 text-taupe" />
+            <span className="text-xs font-serif text-espresso/80">Cozy Craft</span>
+            <span className="text-[10px] text-taupe/70 mt-0.5">Photo coming soon</span>
           </div>
         )}
 
@@ -127,12 +132,7 @@ export function ProductCard({ product }: ProductCardProps) {
       {/* Quick Add and Buy Now */}
       <div className="flex gap-1.5 sm:gap-2 mt-1 px-1">
         <button
-          onClick={(e) => {
-            e.preventDefault();
-            if (product.stock === 0) return;
-            addItem({ productId: product.id, quantity: 1, name: product.name, price: product.price, image: product.images?.[0], slug: product.slug });
-            toast(`Added ${product.name} to cart`, "success");
-          }}
+          onClick={handleQuickAdd}
           disabled={product.stock === 0}
           className="flex-1 rounded-full bg-cream border border-taupe/20 py-2 sm:py-2.5 text-[11px] sm:text-xs font-semibold text-espresso shadow-sm transition-all duration-300 hover:bg-cream-soft hover:shadow-md hover:scale-[1.02] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-espresso"
         >

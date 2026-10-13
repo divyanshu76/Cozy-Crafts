@@ -432,3 +432,254 @@ export async function getShipmentDetails(shipmentId: number): Promise<any> {
     method: "GET",
   });
 }
+
+// ── Cancellation types & parser ──────────────────────────────────────────────
+
+export type CancelOrderResult =
+  | { status: "cancelled"; message: string }
+  | { status: "already_cancelled"; message: string }
+  | { status: "not_cancellable"; message: string }
+  | { status: "unknown"; message: string }
+  | { status: "error"; message: string };
+
+export interface ShiprocketCancelResponse {
+  status?: number;
+  status_code?: number;
+  message?: string;
+  is_error?: boolean;
+  errors?: Record<string, unknown> | string[];
+  response?: {
+    message?: string;
+    cancelled_orders?: Array<{
+      order_id?: number | string;
+      status?: string;
+      message?: string;
+    }>;
+  };
+}
+
+/**
+ * Pure parser for Shiprocket cancel order responses.
+ * Never defaults to 'cancelled' on ambiguous bodies or plain HTTP 200.
+ */
+export function parseCancelOrderResponse(
+  body: ShiprocketCancelResponse | null | undefined,
+  targetOrderId: number | string
+): CancelOrderResult {
+  if (!body || typeof body !== "object") {
+    return {
+      status: "unknown",
+      message: "Shiprocket returned an empty or non-object response body.",
+    };
+  }
+
+  const numericTargetId = Number(targetOrderId);
+  const msg = body.message || body.response?.message || "";
+  const lowerMsg = msg.toLowerCase();
+  const statusCode = body.status_code ?? body.status;
+  const isError = body.is_error === true;
+
+  // 1. Structured cancelled_orders array (most definitive proof)
+  const cancelledOrders = body.response?.cancelled_orders;
+  if (Array.isArray(cancelledOrders) && cancelledOrders.length > 0) {
+    const match = cancelledOrders.find(
+      (o) => Number(o.order_id) === numericTargetId
+    );
+    if (match) {
+      const itemStatus = (match.status || "").toLowerCase();
+      const itemMsg = match.message || msg;
+
+      if (
+        itemStatus.includes("already cancel") ||
+        itemStatus.includes("already_cancelled") ||
+        itemStatus === "already canceled"
+      ) {
+        return {
+          status: "already_cancelled",
+          message: itemMsg || `Shiprocket reported order ${targetOrderId} was already cancelled.`,
+        };
+      }
+
+      if (
+        itemStatus.includes("picked") ||
+        itemStatus.includes("transit") ||
+        itemStatus.includes("deliver") ||
+        itemStatus.includes("cannot")
+      ) {
+        return {
+          status: "not_cancellable",
+          message: itemMsg || `Shiprocket order ${targetOrderId} cannot be cancelled (status: ${match.status}).`,
+        };
+      }
+
+      if (itemStatus.includes("cancel") || itemStatus === "canceled") {
+        return {
+          status: "cancelled",
+          message: itemMsg || `Shiprocket order ${targetOrderId} cancelled successfully.`,
+        };
+      }
+    }
+  }
+
+  // 2. Check for explicit already-cancelled indicators
+  if (
+    lowerMsg.includes("already cancelled") ||
+    lowerMsg.includes("already canceled")
+  ) {
+    return { status: "already_cancelled", message: msg };
+  }
+
+  // 3. Check for reliable non-cancellable indicators
+  if (
+    statusCode === 422 ||
+    lowerMsg.includes("cannot be cancelled") ||
+    lowerMsg.includes("cannot cancel") ||
+    lowerMsg.includes("cannot be canceled") ||
+    lowerMsg.includes("picked up") ||
+    lowerMsg.includes("in transit") ||
+    lowerMsg.includes("out for delivery") ||
+    lowerMsg.includes("delivered")
+  ) {
+    return {
+      status: "not_cancellable",
+      message: msg || `Order cannot be cancelled at this stage (HTTP ${statusCode}).`,
+    };
+  }
+
+  // 4. Check for explicit error flags
+  if (isError || (statusCode !== undefined && statusCode >= 400)) {
+    return {
+      status: "error",
+      message: msg || `Shiprocket cancellation returned error status ${statusCode}.`,
+    };
+  }
+
+  // 5. Check for explicit positive confirmation in message
+  // Must explicitly confirm that the order has been cancelled, not just generic "OK"
+  const isExplicitSuccess =
+    /successfully cancelled|cancelled successfully|order has been cancelled|orders? cancelled/i.test(
+      msg
+    );
+
+  if (isExplicitSuccess && !isError) {
+    return { status: "cancelled", message: msg };
+  }
+
+  // 6. Ambiguous / Unknown response (e.g. { status: 200 }, { success: true }, empty body, etc.)
+  // Never default to cancelled!
+  return {
+    status: "unknown",
+    message: msg
+      ? `Ambiguous response from Shiprocket: "${msg}"`
+      : "Shiprocket returned HTTP 200 without explicit cancellation confirmation.",
+  };
+}
+
+/**
+ * Cancels a Shiprocket order by its Shiprocket order ID.
+ *
+ * Endpoint: POST /v1/external/orders/cancel
+ * Payload:  { ids: [shiprocket_order_id] }
+ *
+ * IMPORTANT: Do NOT call this function during automated tests — use mocks.
+ */
+export async function cancelShiprocketOrder(
+  shiprocketOrderId: string
+): Promise<CancelOrderResult> {
+  try {
+    const body = await shiprocketFetch<ShiprocketCancelResponse>("/orders/cancel", {
+      method: "POST",
+      body: JSON.stringify({ ids: [Number(shiprocketOrderId)] }),
+    });
+
+    return parseCancelOrderResponse(body, shiprocketOrderId);
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : "Unknown Shiprocket API error";
+    const lower = errMsg.toLowerCase();
+
+    if (
+      lower.includes("already cancelled") ||
+      lower.includes("already canceled")
+    ) {
+      return { status: "already_cancelled", message: errMsg };
+    }
+
+    if (
+      lower.includes("cannot be cancelled") ||
+      lower.includes("cannot cancel") ||
+      lower.includes("picked up") ||
+      lower.includes("in transit") ||
+      lower.includes("out for delivery") ||
+      lower.includes("delivered")
+    ) {
+      return { status: "not_cancellable", message: errMsg };
+    }
+
+    if (
+      lower.includes("timeout") ||
+      lower.includes("abort") ||
+      lower.includes("econnreset") ||
+      lower.includes("network")
+    ) {
+      return {
+        status: "unknown",
+        message: `Shiprocket request timed out or network failed (${errMsg}). Reconcile carrier state before retrying.`,
+      };
+    }
+
+    return { status: "error", message: errMsg };
+  }
+}
+
+/**
+ * Safely reconciles an order's remote Shiprocket state before retrying cancellation.
+ * Inspects the current carrier shipment status first.
+ * If already cancelled on Shiprocket, returns already_cancelled without duplicate cancel calls.
+ * If in transit or delivered, returns not_cancellable.
+ */
+export async function reconcileShiprocketCancellation(
+  shiprocketOrderId: string,
+  shipmentId?: number | null
+): Promise<CancelOrderResult> {
+  if (!shipmentId) {
+    return {
+      status: "unknown",
+      message:
+        "No Shiprocket shipment ID available to verify carrier state. Please check the Shiprocket merchant dashboard manually to verify carrier status before retrying.",
+    };
+  }
+
+  try {
+    const details = await getShipmentDetails(shipmentId);
+    const shipmentData = details?.data || details;
+    const srStatus = (shipmentData?.status || "").toUpperCase();
+
+    if (srStatus.includes("CANCEL")) {
+      return {
+        status: "already_cancelled",
+        message: `Verified via Shiprocket shipment query: shipment is ${srStatus}.`,
+      };
+    }
+
+    if (
+      srStatus.includes("PICKED") ||
+      srStatus.includes("TRANSIT") ||
+      srStatus.includes("DELIVER")
+    ) {
+      return {
+        status: "not_cancellable",
+        message: `Verified via Shiprocket shipment query: shipment is already ${srStatus}. Cannot cancel via API.`,
+      };
+    }
+  } catch (err: unknown) {
+    // If fetching shipment details fails, do NOT blindly attempt cancellation.
+    // Remote carrier state is unknown; return unknown and require manual verification.
+    const fetchErrMsg = err instanceof Error ? err.message : "Shipment query failed";
+    return {
+      status: "unknown",
+      message: `Could not verify remote shipment state with Shiprocket (${fetchErrMsg}). Do not retry blindly; please check the Shiprocket merchant dashboard manually to verify carrier status.`,
+    };
+  }
+
+  return cancelShiprocketOrder(shiprocketOrderId);
+}
